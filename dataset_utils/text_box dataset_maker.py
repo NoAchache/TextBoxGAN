@@ -16,7 +16,7 @@ MLT17 = "MLT17"
 class TextBoxDatasetMaker:
     def _extract_dataset(self, dataset_name: str) -> List[str]:
         """
-        :param dataset_name: name of the dataset-utils
+        :param dataset_name: name of the dataset
         :return: path to the directories where the data were extracted
         """
         dataset_dir = os.path.join(cfg.source_datasets, dataset_name)
@@ -71,7 +71,7 @@ class TextBoxDatasetMaker:
 
     def main(self) -> None:
         if len(os.listdir(cfg.training_dir)) > 0:
-            # dataset-utils already created
+            # dataset_utils already created
             return
         output_dirs_17 = self._extract_dataset(MLT17)
         output_dirs_19 = self._extract_dataset(MLT19)
