@@ -1,5 +1,5 @@
 from utils import cfg
-from utils.characters import encode_label
+from utils import encode_label
 
 import tensorflow as tf
 import os

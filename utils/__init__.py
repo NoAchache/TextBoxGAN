@@ -1,3 +1,2 @@
-from utils.config import cfg
-from utils.model_loader import ModelLoader
 from utils.log_summary import LogSummary
+from utils.characters import CHAR_VECTOR, NUM_CLASSES, decode_label, encode_label

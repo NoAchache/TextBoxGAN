@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from utils import cfg
+from config import train_cfg as cfg
 
 from losses.stylegan2_losses import (
     d_logistic,
@@ -17,7 +17,6 @@ class TrainingSteps:
         discriminator,
         g_optimizer,
         d_optimizer,
-        strategy,
         g_reg_interval,
         d_reg_interval,
     ):
@@ -25,7 +24,6 @@ class TrainingSteps:
         self.discriminator = discriminator
         self.g_optimizer = g_optimizer
         self.d_optimizer = d_optimizer
-        self.strategy = strategy
         self.g_reg_interval = g_reg_interval
         self.d_reg_interval = d_reg_interval
 
@@ -39,50 +37,50 @@ class TrainingSteps:
         self.r1_gamma = 10.0
 
     def dist_d_train_step(self, inputs):
-        per_replica_losses = self.strategy.experimental_run_v2(
+        per_replica_losses = cfg.strategy.experimental_run_v2(
             fn=self._d_train_step, args=(inputs,)
         )
 
-        mean_d_loss = self.strategy.reduce(
+        mean_d_loss = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None
         )
         return mean_d_loss
 
     def dist_d_train_step_reg(self, inputs):
-        per_replica_losses = self.strategy.experimental_run_v2(
+        per_replica_losses = cfg.strategy.experimental_run_v2(
             fn=self._d_train_step_reg, args=(inputs,)
         )
-        mean_d_loss = self.strategy.reduce(
+        mean_d_loss = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses[0], axis=None
         )
-        mean_d_gan_loss = self.strategy.reduce(
+        mean_d_gan_loss = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses[1], axis=None
         )
-        mean_r1_penalty = self.strategy.reduce(
+        mean_r1_penalty = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses[2], axis=None
         )
         return mean_d_loss, mean_d_gan_loss, mean_r1_penalty
 
     def dist_g_train_step(self, inputs):
-        per_replica_losses = self.strategy.experimental_run_v2(
+        per_replica_losses = cfg.strategy.experimental_run_v2(
             fn=self._g_train_step, args=(inputs,)
         )
-        mean_g_loss = self.strategy.reduce(
+        mean_g_loss = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None
         )
         return mean_g_loss
 
     def dist_g_train_step_reg(self, inputs):
-        per_replica_losses = self.strategy.experimental_run_v2(
+        per_replica_losses = cfg.strategy.experimental_run_v2(
             fn=self._g_train_step_reg, args=(inputs,)
         )
-        mean_g_loss = self.strategy.reduce(
+        mean_g_loss = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses[0], axis=None
         )
-        mean_g_gan_loss = self.strategy.reduce(
+        mean_g_gan_loss = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses[1], axis=None
         )
-        mean_pl_penalty = self.strategy.reduce(
+        mean_pl_penalty = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses[2], axis=None
         )
         return mean_g_loss, mean_g_gan_loss, mean_pl_penalty
