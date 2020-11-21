@@ -1,5 +1,5 @@
 import tensorflow as tf
-from utils import cfg
+from config import train_cfg as cfg
 
 
 class LogSummary:
@@ -9,15 +9,11 @@ class LogSummary:
         )
 
     def _gen_samples(self, inputs, generator):
-        test_z, test_labels = inputs
+        test_z = inputs
 
         # run networks
-        fake_images_05 = generator(
-            [test_z, test_labels], truncation_psi=0.5, training=False
-        )
-        fake_images_07 = generator(
-            [test_z, test_labels], truncation_psi=0.7, training=False
-        )
+        fake_images_05 = generator(test_z, truncation_psi=0.5, training=False)
+        fake_images_07 = generator(test_z, truncation_psi=0.7, training=False)
 
         # merge on batch dimension: [n_samples, 3, out_res, 2 * out_res]
         final_image = tf.concat([fake_images_05, fake_images_07], axis=2)

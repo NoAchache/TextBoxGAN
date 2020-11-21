@@ -6,8 +6,10 @@ import tensorflow as tf
 
 from utils.tf_utils import allow_memory_growth
 from training_steps import TrainingSteps
-from utils import cfg, LogSummary, ModelLoader
+from utils import LogSummary
+from config import train_cfg as cfg
 from dataset_utils.data_loader import DataLoader
+from models.model_loader import ModelLoader
 
 
 class Trainer(object):
@@ -43,13 +45,13 @@ class Trainer(object):
             synchronization=tf.VariableSynchronization.ON_READ,
             aggregation=tf.VariableAggregation.ONLY_FIRST_REPLICA,
         )
-
+        self.model_loader = ModelLoader()
         # create model: model and optimizer must be created under `strategy.scope`
         (
             self.discriminator,
             self.generator,
             self.g_clone,
-        ) = ModelLoader().initiate_models(self.g_params, self.d_params)
+        ) = self.model_loader.initiate_models(self.g_params, self.d_params)
 
         # set optimizers
         self.d_optimizer = tf.keras.optimizers.Adam(
@@ -65,47 +67,30 @@ class Trainer(object):
             epsilon=self.g_opt["epsilon"],
         )
 
-        # setup saving locations (object based savings)
-        self.ckpt_dir = os.path.join(self.model_base_dir, cfg.experiment_name)
-        self.ckpt = tf.train.Checkpoint(
-            d_optimizer=self.d_optimizer,
-            g_optimizer=self.g_optimizer,
-            discriminator=self.discriminator,
-            generator=self.generator,
-            g_clone=self.g_clone,
-            pl_mean=self.pl_mean,
-        )
-        self.manager = tf.train.CheckpointManager(
-            self.ckpt, self.ckpt_dir, max_to_keep=2
-        )
         self.log_summary = LogSummary()
         self.training_steps = TrainingSteps(
             self.generator,
             self.discriminator,
             self.g_optimizer,
             self.d_optimizer,
-            self.strategy,
             self.g_opt["reg_interval"],
             self.d_opt["reg_interval"],
         )
 
-        # try to restore
-        self.ckpt.restore(self.manager.latest_checkpoint)
-        if self.manager.latest_checkpoint:
-            print("Restored from {}".format(self.manager.latest_checkpoint))
-
-            # check if already trained in this resolution
-            restored_step = self.g_optimizer.iterations.numpy()
-            if restored_step >= self.max_steps:
-                print(
-                    "Already reached max steps {}/{}".format(
-                        restored_step, self.max_steps
-                    )
-                )
-                self.reached_max_steps = True
-                return
-        else:
-            print("Not restoring from saved checkpoint")
+        self.manager = self.model_loader.load_checkpoint(
+            ckpt_kwargs={
+                "d_optimizer": self.d_optimizer,
+                "g_optimizer": self.g_optimizer,
+                "discriminator": self.discriminator,
+                "generator": self.generator,
+                "g_clone": self.g_clone,
+                "pl_mean": self.pl_mean,
+            },
+            model_description="Full model",
+            expect_partial=False,
+            ckpt_dir=cfg.ckpt_dir,
+            max_to_keep=10,
+        )
 
     @staticmethod
     def update_optimizer_params(params):
@@ -218,13 +203,8 @@ class Trainer(object):
                         shape=(self.n_samples, self.g_params["z_dim"]),
                         dtype=tf.dtypes.float32,
                     )
-                    test_labels = tf.ones(
-                        (self.n_samples, self.g_params["labels_dim"]),
-                        dtype=tf.dtypes.float32,
-                    )
-                    summary_image = dist_gen_samples(
-                        (test_z, test_labels), self.g_clone
-                    )
+
+                    summary_image = dist_gen_samples(test_z, self.g_clone)
 
                     # convert to tensor image
                     summary_image = self.convert_per_replica_image(
@@ -312,13 +292,11 @@ def main():
     g_params = {
         "z_dim": 512,
         "w_dim": 512,
-        "labels_dim": 0,
         "n_mapping": 8,
         "resolutions": train_resolutions,
         "featuremaps": train_featuremaps,
     }
     d_params = {
-        "labels_dim": 0,
         "resolutions": train_resolutions,
         "featuremaps": train_featuremaps,
     }

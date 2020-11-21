@@ -1,11 +1,12 @@
-import tensorflow as tf
 from models.stylegan2.generator import Generator
 from models.stylegan2.discriminator import Discriminator
 
-##TODO: add typing
+import tensorflow as tf
+
+
 class ModelLoader:
     def initiate_models(self, g_params, d_params):
-        discriminator = self._load_discriminator(d_params, ckpt_dir=None)
+        discriminator = self._load_discriminator(d_params)
         generator = self._load_generator(
             g_params=g_params, is_g_clone=False, ckpt_dir=None,
         )
@@ -37,17 +38,19 @@ class ModelLoader:
         _ = generator([test_latent, test_labels])
 
         if ckpt_dir is not None:
-            if is_g_clone:
-                ckpt = tf.train.Checkpoint(g_clone=generator)
-            else:
-                ckpt = tf.train.Checkpoint(generator=generator)
-            manager = tf.train.CheckpointManager(ckpt, ckpt_dir, max_to_keep=1)
-            ckpt.restore(manager.latest_checkpoint).expect_partial()
-            if manager.latest_checkpoint:
-                print(f"Generator restored from {manager.latest_checkpoint}")
+            ckpt_kwargs = (
+                {"g_clone": generator} if is_g_clone else {"generator": generator}
+            )
+            self.load_checkpoint(
+                ckpt_kwargs=ckpt_kwargs,
+                model_description="Generator",
+                expect_partial=True,
+                ckpt_dir=ckpt_dir,
+            )
+
         return generator
 
-    def _load_discriminator(self, d_params=None, ckpt_dir=None):
+    def _load_discriminator(self, d_params=None):
 
         if d_params is None:
             d_params = {
@@ -64,12 +67,22 @@ class ModelLoader:
         discriminator = Discriminator(d_params)
         _ = discriminator([test_images, test_labels])
 
-        if ckpt_dir is not None:
-            ckpt = tf.train.Checkpoint(discriminator=discriminator)
-            manager = tf.train.CheckpointManager(ckpt, ckpt_dir, max_to_keep=1)
-            ckpt.restore(manager.latest_checkpoint).expect_partial()
-            if manager.latest_checkpoint:
-                print(
-                    "Discriminator restored from {}".format(manager.latest_checkpoint)
-                )
         return discriminator
+
+    # TODO check if inference can be faster if better loading
+    def load_checkpoint(
+        self, ckpt_kwargs, model_description, expect_partial, ckpt_dir, max_to_keep=None
+    ):
+        ckpt = tf.train.Checkpoint(**ckpt_kwargs)
+        manager = tf.train.CheckpointManager(ckpt, ckpt_dir, max_to_keep=max_to_keep)
+        if expect_partial:
+            ckpt.restore(manager.latest_checkpoint).expect_partial()
+        else:
+            ckpt.restore(manager.latest_checkpoint).expect_partial()
+        if manager.latest_checkpoint:
+            print(
+                "{} restored from {}".format(
+                    model_description, manager.latest_checkpoint
+                )
+            )
+        return manager
