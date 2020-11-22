@@ -2,19 +2,21 @@ import tensorflow as tf
 
 from models.stylegan2.layers.synthesis_block import Synthesis
 from models.word_encoder import WordEncoder
+from models.stylegan2.latent_encoder import LatentEncoder
 
 
 class Generator(tf.keras.Model):
-    def __init__(self, g_params, **kwargs):
+    def __init__(self, **kwargs):
         super(Generator, self).__init__(**kwargs)
 
-        self.resolutions = g_params["resolutions"]
-        self.featuremaps = g_params["featuremaps"]
-
         self.word_encoder = WordEncoder()
-        self.synthesis = Synthesis(
-            self.resolutions, self.featuremaps, name="g_synthesis"
+        self.synthesis = Synthesis()
+        self.n_style_w_e = 2 * len(self.word_encoder.char_expander.synth_blocks)
+        self.n_style_s = 2 * len(self.synthesis.synth_blocks) + len(
+            self.synthesis.torgbs
         )
+        self.n_style = self.n_style_w_e + self.n_style_s
+        self.latent_encoder = LatentEncoder(n_broadcast=self.n_style)
 
     def call(
         self,
@@ -25,9 +27,11 @@ class Generator(tf.keras.Model):
         training=None,
         mask=None,
     ):
-        word_encoded = self.word_encoder(inputs)
+        word_code, z_latent = inputs  # ((bs, max_chars), (bs , z_dim))
+        style = self.latent_encoder(z_latent)  # (bs, self.n_style, w_dim)
+        word_encoded = self.word_encoder([word_code, style[: self.n_style_w_e]])
 
-        image_out = self.synthesis(word_encoded)
+        image_out = self.synthesis([word_encoded, style[-self.n_style_s :]])
 
         if ret_w_broadcasted:
             return (

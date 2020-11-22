@@ -1,0 +1,5 @@
+easydict==1.9
+opencv_python==4.2.0.34
+tensorflow==2.2.0
+tqdm==4.30.0
+numpy==1.18.4

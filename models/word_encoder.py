@@ -8,56 +8,58 @@ from tensorflow.keras.layers import (
     Bidirectional,
     BatchNormalization,
     ReLU,
-    Convolution2DTranspose,
 )
 
-from models.stylegan2.latent_encoder import LatentEncoder
+
 from utils import NUM_CLASSES
-from config import train_cfg as cfg
-
-
-# embedding(32) --> dropout(0.7) --> biLSTM(256) --> fc(512) --> relu --> cat(z(100))--> reshape: batch size *= 8
-# --> fc(512) --> batchnorm1d --> relu
+from config import cfg
+from models.stylegan2.layers.synthesis_block import SynthesisBlock
 
 
 class WordEncoder(tf.keras.Model):
-    def __init__(self, name="WordEncoder"):
+    def __init__(self, name="word_encoder"):
         super(WordEncoder, self).__init__(name=name)
 
-        self.char_encoder = CharEncoder()
-        self.latent_encoder = LatentEncoder()
-        self.char_expander = CharExpander()
+        self.encoding_dense_dim = 256
+        self.char_encoder = CharEncoder(dense_dim=self.encoding_dense_dim)
+
+        assert cfg.char_width % 4 == 0
+        self.encoded_char_width = cfg.char_width / 4
+
+        self.char_expander = CharExpander(
+            encoded_char_width=self.encoded_char_width,
+            init_channels=self.encoding_dense_dim / self.encoded_char_width,
+        )
 
         self.fc = Sequential([Dense(512), BatchNormalization(), ReLU()])
 
     def call(self, inputs, training=None, mask=None):
 
-        word_code, z_latent = inputs  # ((bs, max_chars), (bs * max_chars, z_dim_char))
-        chars_encoded = self.char_encoder(word_code)  # (bs * max_chars, 256)
-        w_latent = self.latent_encoder(z_latent)  # (bs * max_chars, w_dim_char)
-        chars_w = tf.concat(
-            [chars_encoded, w_latent], axis=1
-        )  # (bs * max_chars, 256 + w_dim_char)
+        word_code, style = inputs
+        chars_encoded = self.char_encoder(
+            word_code
+        )  # (bs * max_chars, self.encoding_dense_dim)
 
-        chars_w = self.fc(chars_w)  # (bs * max_chars, 512)
-
-        word_encoded = self.char_expander(chars_w)
-        # (bs, 1, max_chars * char_width, c) with c = 512 * 16 / char_width
+        word_encoded = self.char_expander([chars_encoded, style])
+        # (bs, cfg.expand_char_feat_maps[-1], 1,cfg.char_width)
 
         return word_encoded
 
 
 class CharEncoder(tf.keras.Model):
-    def __init__(self, dropout_rate=0.3, name="CharEncoder"):
+    def __init__(self, dense_dim, dropout_rate=0.3, name="char_encoder"):
         super(CharEncoder, self).__init__(name=name)
+
+        self.dense_dim = dense_dim
+        self.dropout_rate = dropout_rate
 
         self.char_embedding = Embedding(
             NUM_CLASSES, cfg.embedding_dim, input_length=cfg.max_chars
         )
 
-        self.dropout = Dropout(dropout_rate)
+        self.dropout = Dropout(self.dropout_rate)
         self.bilstm = Bidirectional(LSTM(128, return_sequences=True))
-        self.fc = Dense(256)
+        self.fc = Dense(self.dense_dim)
         self.relu = ReLU()
 
     def call(self, inputs, training=None, mask=None):
@@ -66,66 +68,55 @@ class CharEncoder(tf.keras.Model):
         )
         x = self.bilstm(embeddings)  # (bs, max_chars, 128*2)
         x = tf.reshape(x, [cfg.batch_size * cfg.max_chars, 128 * 2])
-        x = self.relu(self.fc(x))  # (bs * max_chars, 256)
+        x = self.relu(self.fc(x))  # (bs * max_chars, self.dense_dim)
 
         return x
 
 
 class CharExpander(tf.keras.Model):
-    def __init__(self, name="CharExpander"):
+    def __init__(self, encoded_char_width, init_channels, name="char_expander"):
         super(CharExpander, self).__init__(name=name)
 
-        assert cfg.char_width % 4 == 0
-        self.width = cfg.char_width / 4
+        self.width = encoded_char_width
+        self.init_channels = init_channels
+        self.width_resolutions = cfg.expand_char_w_res
+        self.feat_maps = cfg.expand_char_feat_maps
 
-    def _upBlock(self, output_filters, kernel_size):
+        self.synth_blocks = list()
+        self.feat_maps = [self.channels] + self.feat_maps
 
-        return Sequential(
-            [
-                Convolution2DTranspose(
-                    output_filters, kernel_size, data_format="channels_last"
-                ),
-                BatchNormalization(),
-                GLU(),
-            ]
-        )
-
-    def build(self, input_shape):
-        assert input_shape[1] % self.width == 0
-        self.channels = input_shape[1] / self.width
-        self.up_block1 = self._upBlock(
-            output_filters=self.channels * 4, kernel_size=(1, 2)
-        )
-        self.up_block2 = self._upBlock(
-            output_filters=self.channels * 4, kernel_size=(1, 2)
-        )
-
-        # TODO: replace upBlock with a stylegan2 upBlock
+        for out_w, in_maps, out_maps in zip(
+            self.width_resolutions, self.feat_maps[:-1], self.feat_maps[1:]
+        ):
+            self.synth_blocks.append(
+                SynthesisBlock(
+                    in_ch=in_maps,
+                    out_fmaps=out_maps,
+                    out_h_res=1,
+                    out_w_res=out_w,
+                    expand_direction="width",
+                    kernel_shape=[1, 3],
+                    name="{:d}x{:d}/block".format(1, out_w),
+                )
+            )
 
     def call(self, inputs, training=None, mask=None):
+        x, style = inputs
 
         x = tf.reshape(
-            inputs, [cfg.batch_size * cfg.max_chars, 1, self.width, self.channels],
+            inputs, [cfg.batch_size * cfg.max_chars, self.init_channels, 1, self.width],
         )
-        x = self.up_block1(x)  # (bs * max_chars, 1, cfg.char_width / 2, channels)
-        x = self.up_block2(x)  # (bs * max_chars, 1, cfg.char_width, channels)
 
-        # (bs * max_chars, 1, cfg.char_width, channels)
+        for idx, block in enumerate(self.synth_blocks):
+            idx *= 2
+            s0 = style[:, idx]
+            s1 = style[:, idx + 1]
+            x = block([x, s0, s1])
+
+        # x: (bs * max_chars, self.feat_maps[-1], 1, cfg.char_width)
+
         x = tf.reshape(
-            x, [cfg.batch_size, 1, cfg.max_chars * cfg.char_width, self.channels * 4]
+            x, [cfg.batch_size, self.feat_maps[-1], 1, cfg.max_chars * cfg.char_width]
         )
 
         return x
-
-
-class GLU(tf.keras.layers.Layer):
-    def __init__(self):
-        super(GLU, self).__init__()
-
-    def build(self, input_shape):
-        assert input_shape[-1] % 2 == 0, "channels dont divide 2!"
-        self.output_dim = input_shape[-1] // 2
-
-    def call(self, x, training=None, mask=None):
-        nc = self.output_dim
-        return x[:, :, :, :nc] * tf.sigmoid(x[:, :, :, nc:])

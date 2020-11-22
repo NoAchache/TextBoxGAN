@@ -7,7 +7,7 @@ import tensorflow as tf
 from utils.tf_utils import allow_memory_growth
 from training_steps import TrainingSteps
 from utils import LogSummary
-from config import train_cfg as cfg
+from config import cfg
 from dataset_utils.data_loader import DataLoader
 from models.model_loader import ModelLoader
 
@@ -253,13 +253,6 @@ class Trainer(object):
         return as_tensor
 
 
-def filter_resolutions_featuremaps(resolutions, featuremaps, res):
-    index = resolutions.index(res)
-    filtered_resolutions = resolutions[: index + 1]
-    filtered_featuremaps = featuremaps[: index + 1]
-    return filtered_resolutions, filtered_featuremaps
-
-
 def main():
     # global program arguments parser
     parser = argparse.ArgumentParser(description="")
@@ -272,9 +265,6 @@ def main():
 
     parser.add_argument("--model_base_dir", default="./models", type=str)
     parser.add_argument("--tfrecord_dir", default="./tfrecords", type=str)
-    parser.add_argument("--train_res", default=256, type=int)
-    parser.add_argument("--shuffle_buffer_size", default=1000, type=int)
-    parser.add_argument("--batch_size_per_replica", default=4, type=int)
     args = vars(parser.parse_args())
 
     # GPU environment settings
@@ -282,24 +272,6 @@ def main():
         allow_memory_growth()
     if args["debug_split_gpu"]:
         split_gpu_for_testing(mem_in_gb=4.5)
-
-    # network params
-    resolutions = [4, 8, 16, 32, 64, 128, 256, 512, 1024]
-    featuremaps = [512, 512, 512, 512, 512, 256, 128, 64, 32]
-    train_resolutions, train_featuremaps = filter_resolutions_featuremaps(
-        resolutions, featuremaps, args["train_res"]
-    )
-    g_params = {
-        "z_dim": 512,
-        "w_dim": 512,
-        "n_mapping": 8,
-        "resolutions": train_resolutions,
-        "featuremaps": train_featuremaps,
-    }
-    d_params = {
-        "resolutions": train_resolutions,
-        "featuremaps": train_featuremaps,
-    }
 
     # training parameters
     training_parameters = {
@@ -323,7 +295,6 @@ def main():
             "epsilon": 1e-08,
             "reg_interval": 16,
         },
-        "batch_size": global_batch_size,
         "n_total_image": 25000000,
         "n_samples": 3,
         "train_res": args["train_res"],

@@ -1,4 +1,4 @@
-from config import train_cfg as cfg
+from config import cfg
 from utils import encode_label
 
 import tensorflow as tf
@@ -47,6 +47,7 @@ class DataLoader:
                     borderType=cv2.BORDER_CONSTANT,
                 )
 
+                padded_img = np.transpose(padded_img, (2, 0, 1))  # H,W,C to C,H,W
                 encoded_label = encode_label(label)
                 padded_label = np.concatenate(
                     (encoded_label, np.array([-1] * (cfg.max_chars - len(label))))

@@ -2,27 +2,26 @@ import tensorflow as tf
 
 from models.stylegan2.utils import lerp
 from models.stylegan2.layers.mapping_block import Mapping
-from models.stylegan2.layers.synthesis_block import Synthesis
-from config import train_cfg as cfg
+from config import cfg
 
 
 class LatentEncoder(tf.keras.Model):
-    def __init__(self, g_params, **kwargs):
+    def __init__(self, n_broadcast, **kwargs):
+
         super(LatentEncoder, self).__init__(**kwargs)
 
-        self.z_dim = cfg.z_dim_char * cfg.max_chars
-        self.w_dim = cfg.w_dim_char * cfg.max_chars
-        self.n_mapping = g_params["n_mapping"]
-        self.resolutions = g_params["resolutions"]
+        self.z_dim = cfg.z_dim
+        self.w_dim = cfg.w_dim
+        self.n_mapping = cfg.n_mapping
         self.w_ema_decay = 0.995
         self.style_mixing_prob = 0.9
+        self.n_broadcast = n_broadcast
 
-        self.n_broadcast = len(self.resolutions) * 2
+        self.g_mapping = Mapping(self.w_dim, self.n_mapping, name="g_mapping")
         self.mixing_layer_indices = tf.range(self.n_broadcast, dtype=tf.int32)[
             tf.newaxis, :, tf.newaxis
         ]
 
-        self.g_mapping = Mapping(self.w_dim, self.n_mapping, name="g_mapping")
         self.broadcast = tf.keras.layers.Lambda(
             lambda x: tf.tile(x[:, tf.newaxis], [1, self.n_broadcast, 1])
         )
@@ -126,6 +125,3 @@ class LatentEncoder(tf.keras.Model):
             )
 
         return w_broadcasted
-
-    def compute_output_shape(self, input_shape):
-        return input_shape[0][0], 3, self.resolutions[-1], self.resolutions[-1]

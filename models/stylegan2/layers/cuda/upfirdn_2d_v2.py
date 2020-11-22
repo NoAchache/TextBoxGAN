@@ -6,7 +6,7 @@ from models.stylegan2.layers.cuda import custom_ops
 
 def _get_plugin():
     loc = os.path.dirname(os.path.abspath(__file__))
-    cu_fn = 'upfirdn_2d.cu'
+    cu_fn = "upfirdn_2d.cu"
     return custom_ops.get_plugin(os.path.join(loc, cu_fn))
 
 
@@ -20,7 +20,7 @@ def _setup_kernel(k):
     return k
 
 
-def compute_paddings(resample_kernel, convW, up, down, is_conv, factor=2, gain=1):
+def compute_paddings(resample_kernel, up, down, is_conv, convW=3, factor=2, gain=1):
     assert not (up and down)
 
     k = [1] * factor if resample_kernel is None else resample_kernel
@@ -50,9 +50,9 @@ def compute_paddings(resample_kernel, convW, up, down, is_conv, factor=2, gain=1
     return k, pad0, pad1
 
 
-def upsample_2d(x, x_res, pad0, pad1, k, factor=2):
+def upsample_2d(x, res_h, res_w, pad0, pad1, k, factor=2):
     assert isinstance(factor, int) and factor >= 1
-    return _simple_upfirdn_2d(x, x_res, k, up=factor, pad0=pad0, pad1=pad1)
+    return _simple_upfirdn_2d(x, res_h, res_w, k, up=factor, pad0=pad0, pad1=pad1)
 
 
 def downsample_2d(x, x_res, pad0, pad1, k, factor=2):
@@ -60,21 +60,27 @@ def downsample_2d(x, x_res, pad0, pad1, k, factor=2):
     return _simple_upfirdn_2d(x, x_res, k, down=factor, pad0=pad0, pad1=pad1)
 
 
-def upsample_conv_2d(x, x_res, w, convH, convW, pad0, pad1, k, factor=2):
-    assert isinstance(factor, int) and factor >= 1
+def upsample_conv_2d(x, w_res, h_res, w, pad0, pad1, k, w_factor, h_factor):
 
     # Check weight shape.
     w = tf.convert_to_tensor(w)
     assert w.shape.rank == 4
-    # convH = w.shape[0]
-    # convW = w.shape[1]
+    convH = w.shape[0]
+    convW = w.shape[1]
     inC = tf.shape(w)[2]
     outC = tf.shape(w)[3]
-    assert convW == convH
 
     # Determine data dimensions.
-    stride = [1, 1, factor, factor]
-    output_shape = [tf.shape(x)[0], outC, (x_res - 1) * factor + convH, (x_res - 1) * factor + convW]
+    stride = [1, 1, 2, 2]
+    h_size = (h_res - 1) * h_factor + convW if h_factor > 1 else h_res + 1
+    w_size = (w_res - 1) * w_factor + convW if w_factor > 1 else w_res + 1
+
+    output_shape = [
+        tf.shape(x)[0],
+        outC,
+        h_size,
+        w_size,
+    ]
     num_groups = tf.shape(x)[1] // inC
 
     # Transpose weights.
@@ -83,27 +89,44 @@ def upsample_conv_2d(x, x_res, w, convH, convW, pad0, pad1, k, factor=2):
     w = tf.reshape(w, [convH, convW, -1, num_groups * inC])
 
     # Execute.
-    x = tf.nn.conv2d_transpose(x, w, output_shape=output_shape, strides=stride, padding='VALID', data_format='NCHW')
-    new_x_res = output_shape[2]
-    return _simple_upfirdn_2d(x, new_x_res, k, pad0=pad0, pad1=pad1)
+    x = tf.nn.conv2d_transpose(
+        x,
+        w,
+        output_shape=output_shape,
+        strides=stride,
+        padding="VALID",
+        data_format="NCHW",
+    )
+    new_x_res_h = output_shape[2]
+    new_x_res_w = output_shape[3]
+
+    return _simple_upfirdn_2d(x, new_x_res_h, new_x_res_w, k, pad0=pad0, pad1=pad1)
 
 
-def conv_downsample_2d(x, x_res, w, convH, convW, pad0, pad1, k, factor=2):
-    assert isinstance(factor, int) and factor >= 1
+def conv_downsample_2d(x, w_res, h_res, w, pad0, pad1, k):
     w = tf.convert_to_tensor(w)
     # convH, convW, _inC, _outC = w.shape.as_list()
-    assert convW == convH
-
-    s = [1, 1, factor, factor]
-    x = _simple_upfirdn_2d(x, x_res, k, pad0=pad0, pad1=pad1)
-    return tf.nn.conv2d(x, w, strides=s, padding='VALID', data_format='NCHW')
+    s = [1, 1, 2, 2]
+    x = _simple_upfirdn_2d(x, w_res, h_res, k, pad0=pad0, pad1=pad1)
+    return tf.nn.conv2d(x, w, strides=s, padding="VALID", data_format="NCHW")
 
 
-def _simple_upfirdn_2d(x, x_res, k, up=1, down=1, pad0=0, pad1=0):
+def _simple_upfirdn_2d(x, x_res_h, x_res_w, k, up=1, down=1, pad0=0, pad1=0):
     assert x.shape.rank == 4
     y = x
-    y = tf.reshape(y, [-1, x_res, x_res, 1])
-    y = upfirdn_2d_cuda(y, k, upx=up, upy=up, downx=down, downy=down, padx0=pad0, padx1=pad1, pady0=pad0, pady1=pad1)
+    y = tf.reshape(y, [-1, x_res_h, x_res_w, 1])
+    y = upfirdn_2d_cuda(
+        y,
+        k,
+        upx=up,
+        upy=up,
+        downx=down,
+        downy=down,
+        padx0=pad0,
+        padx1=pad1,
+        pady0=pad0,
+        pady1=pad1,
+    )
     y = tf.reshape(y, [-1, tf.shape(x)[1], tf.shape(y)[1], tf.shape(y)[2]])
     return y
 
@@ -135,12 +158,37 @@ def upfirdn_2d_cuda(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
 
     @tf.custom_gradient
     def func(x):
-        y = _get_plugin().up_fir_dn2d(x=x, k=kc, upx=upx, upy=upy, downx=downx, downy=downy, padx0=padx0, padx1=padx1, pady0=pady0, pady1=pady1)
+        y = _get_plugin().up_fir_dn2d(
+            x=x,
+            k=kc,
+            upx=upx,
+            upy=upy,
+            downx=downx,
+            downy=downy,
+            padx0=padx0,
+            padx1=padx1,
+            pady0=pady0,
+            pady1=pady1,
+        )
         y.set_shape([majorDim, outH, outW, minorDim])
+
         @tf.custom_gradient
         def grad(dy):
-            dx = _get_plugin().up_fir_dn2d(x=dy, k=gkc, upx=downx, upy=downy, downx=upx, downy=upy, padx0=gpadx0, padx1=gpadx1, pady0=gpady0, pady1=gpady1)
+            dx = _get_plugin().up_fir_dn2d(
+                x=dy,
+                k=gkc,
+                upx=downx,
+                upy=downy,
+                downx=upx,
+                downy=upy,
+                padx0=gpadx0,
+                padx1=gpadx1,
+                pady0=gpady0,
+                pady1=gpady1,
+            )
             dx.set_shape([majorDim, inH, inW, minorDim])
             return dx, func
+
         return y, grad
+
     return func(x)
