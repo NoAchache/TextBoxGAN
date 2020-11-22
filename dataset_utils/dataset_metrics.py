@@ -1,4 +1,4 @@
-from config import train_cfg as cfg
+from config import cfg
 
 import os
 import cv2

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from config import train_cfg as cfg
+from config import cfg
 
 
 class LogSummary:

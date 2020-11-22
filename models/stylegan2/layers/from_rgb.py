@@ -10,9 +10,18 @@ class FromRGB(tf.keras.layers.Layer):
         self.fmaps = fmaps
         self.res = res
 
-        self.conv = Conv2D(in_res=res, in_fmaps=3, fmaps=self.fmaps, kernel=1, up=False, down=False,
-                           resample_kernel=None, gain=1.0, lrmul=1.0, name='conv')
-        self.apply_bias_act = BiasAct(lrmul=1.0, act='lrelu', name='bias')
+        self.conv = Conv2D(
+            in_res=res,
+            in_fmaps=3,
+            fmaps=self.fmaps,
+            kernel=1,
+            down=False,
+            resample_kernel=None,
+            gain=1.0,
+            lrmul=1.0,
+            name="conv",
+        )
+        self.apply_bias_act = BiasAct(lrmul=1.0, act="lrelu", name="bias")
 
     def call(self, inputs, training=None, mask=None):
         y = self.conv(inputs)
@@ -21,8 +30,7 @@ class FromRGB(tf.keras.layers.Layer):
 
     def get_config(self):
         config = super(FromRGB, self).get_config()
-        config.update({
-            'fmaps': self.fmaps,
-            'res': self.res,
-        })
+        config.update(
+            {"fmaps": self.fmaps, "res": self.res,}
+        )
         return config

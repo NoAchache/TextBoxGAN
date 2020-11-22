@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from config import train_cfg as cfg
+from config import cfg
 
 from losses.stylegan2_losses import (
     d_logistic,

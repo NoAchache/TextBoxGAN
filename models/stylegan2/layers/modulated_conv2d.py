@@ -3,41 +3,64 @@ import tensorflow as tf
 from models.stylegan2.layers.commons import compute_runtime_coef
 from models.stylegan2.layers.dense import Dense
 from models.stylegan2.layers.bias_act import BiasAct
-from models.stylegan2.layers.cuda.upfirdn_2d_v2 import upsample_conv_2d, conv_downsample_2d, compute_paddings
+from models.stylegan2.layers.cuda.upfirdn_2d_v2 import (
+    upsample_conv_2d,
+    compute_paddings,
+)
 
 
 class ModulatedConv2D(tf.keras.layers.Layer):
-    def __init__(self, in_res, in_fmaps, fmaps, kernel, up, down, demodulate, resample_kernel, gain, lrmul,
-                 fused_modconv, **kwargs):
+    def __init__(
+        self,
+        in_fmaps,
+        out_fmaps,
+        kernel_shape,
+        up,
+        demodulate,
+        resample_kernel,
+        gain,
+        lrmul,
+        fused_modconv,
+        in_h_res=None,
+        in_w_res=None,
+        h_expand_factor=None,
+        w_expand_factor=None,
+        **kwargs
+    ):
         super(ModulatedConv2D, self).__init__(**kwargs)
-        assert not (up and down)
 
-        self.in_res = in_res
+        self.in_h_res = in_h_res
+        self.in_w_res = in_w_res
         self.in_fmaps = in_fmaps
-        self.fmaps = fmaps
-        self.kernel = kernel
+        self.fmaps = out_fmaps
+        self.kernel_shape = kernel_shape
         self.demodulate = demodulate
         self.up = up
-        self.down = down
         self.fused_modconv = fused_modconv
+        self.h_expand_factor = h_expand_factor
+        self.w_expand_factor = w_expand_factor
         self.gain = gain
         self.lrmul = lrmul
         # self.resample_kernel = resample_kernel
 
-        self.k, self.pad0, self.pad1 = compute_paddings(resample_kernel, self.kernel, up, down, is_conv=True)
+        self.k, self.pad0, self.pad1 = compute_paddings(
+            resample_kernel, up, False, is_conv=True
+        )
 
         # self.factor = 2
-        self.mod_dense = Dense(self.in_fmaps, gain=1.0, lrmul=1.0, name='mod_dense')
-        self.mod_bias = BiasAct(lrmul=1.0, act='linear', name='mod_bias')
+        self.mod_dense = Dense(self.in_fmaps, gain=1.0, lrmul=1.0, name="mod_dense")
+        self.mod_bias = BiasAct(lrmul=1.0, act="linear", name="mod_bias")
 
     def build(self, input_shape):
         # x_shape, w_shape = input_shape[0], input_shape[1]
-        weight_shape = [self.kernel, self.kernel, self.in_fmaps, self.fmaps]
-        init_std, self.runtime_coef = compute_runtime_coef(weight_shape, self.gain, self.lrmul)
+        weight_shape = self.kernel_shape + [self.in_fmaps, self.fmaps]
+        init_std, self.runtime_coef = compute_runtime_coef(
+            weight_shape, self.gain, self.lrmul
+        )
 
         # [kkIO]
         w_init = tf.random.normal(shape=weight_shape, mean=0.0, stddev=init_std)
-        self.w = tf.Variable(w_init, name='w', trainable=True)
+        self.w = tf.Variable(w_init, name="w", trainable=True)
 
     def call(self, inputs, training=None, mask=None):
         x, y = inputs
@@ -48,31 +71,46 @@ class ModulatedConv2D(tf.keras.layers.Layer):
         ww = w[tf.newaxis]
 
         # Modulate
-        s = self.mod_dense(y)           # [BI]
-        s = self.mod_bias(s) + 1.0      # [BI]
+        s = self.mod_dense(y)  # [BI]
+        s = self.mod_bias(s) + 1.0  # [BI]
         ww *= s[:, tf.newaxis, tf.newaxis, :, tf.newaxis]  # [BkkIO]
 
         if self.demodulate:
-            d = tf.math.rsqrt(tf.reduce_sum(tf.square(ww), axis=[1, 2, 3]) + 1e-8)  # [BO]
-            ww *= d[:, tf.newaxis, tf.newaxis, tf.newaxis, :]                       # [BkkIO]
+            d = tf.math.rsqrt(
+                tf.reduce_sum(tf.square(ww), axis=[1, 2, 3]) + 1e-8
+            )  # [BO]
+            ww *= d[:, tf.newaxis, tf.newaxis, tf.newaxis, :]  # [BkkIO]
 
         if self.fused_modconv:
             # Fused => reshape minibatch to convolution groups
             x_shape = tf.shape(x)
             ww_shape = tf.shape(ww)
-            x = tf.reshape(x, [1, -1, x_shape[2], x_shape[3]])
-            w = tf.reshape(tf.transpose(ww, [1, 2, 3, 0, 4]), [ww_shape[1], ww_shape[2], ww_shape[3], -1])
+            x = tf.reshape(x, [1, -1, x_shape[2], x_shape[3]])  # [1, B*C, H, W]
+            w = tf.reshape(
+                tf.transpose(ww, [1, 2, 3, 0, 4]),
+                [ww_shape[1], ww_shape[2], ww_shape[3], -1],
+            )  # [k, k, I, B*O]
         else:
             # [BIhw] Not fused => scale input activations
             x *= s[:, :, tf.newaxis, tf.newaxis]
 
-        # Convolution with optional up/downsampling.
+        # Convolution with optional upsampling.
         if self.up:
-            x = upsample_conv_2d(x, self.in_res, w, self.kernel, self.kernel, self.pad0, self.pad1, self.k)
-        elif self.down:
-            x = conv_downsample_2d(x, self.in_res, w, self.kernel, self.kernel, self.pad0, self.pad1, self.k)
+            x = upsample_conv_2d(
+                x,
+                self.in_w_res,
+                self.in_h_res,
+                w,
+                self.pad0,
+                self.pad1,
+                self.k,
+                self.w_expand_factor,
+                self.h_expand_factor,
+            )
         else:
-            x = tf.nn.conv2d(x, w, data_format='NCHW', strides=[1, 1, 1, 1], padding='SAME')
+            x = tf.nn.conv2d(
+                x, w, data_format="NCHW", strides=[1, 1, 1, 1], padding="SAME"
+            )
 
         # Reshape/scale output
         if self.fused_modconv:
@@ -84,22 +122,31 @@ class ModulatedConv2D(tf.keras.layers.Layer):
             x *= d[:, :, tf.newaxis, tf.newaxis]
         return x
 
+    """
+          output[b, h, w, BO] =
+          sum_{k, k, C_in} input[b,  h + k, w + k, BC] *
+                          filter[k, k, C_in, BO]
+
+    """
+
     def get_config(self):
         config = super(ModulatedConv2D, self).get_config()
-        config.update({
-            'in_res': self.in_res,
-            'in_fmaps': self.in_fmaps,
-            'fmaps': self.fmaps,
-            'kernel': self.kernel,
-            'demodulate': self.demodulate,
-            'fused_modconv': self.fused_modconv,
-            'gain': self.gain,
-            'lrmul': self.lrmul,
-            'up': self.up,
-            'down': self.down,
-            'k': self.k,
-            'pad0': self.pad0,
-            'pad1': self.pad1,
-            'runtime_coef': self.runtime_coef,
-        })
+        config.update(
+            {
+                "in_w_res": self.in_w_res,
+                "in_h_res": self.in_h_res,
+                "in_fmaps": self.in_fmaps,
+                "fmaps": self.fmaps,
+                "kernel_shape": self.kernel_shape,
+                "demodulate": self.demodulate,
+                "fused_modconv": self.fused_modconv,
+                "gain": self.gain,
+                "lrmul": self.lrmul,
+                "up": self.up,
+                "k": self.k,
+                "pad0": self.pad0,
+                "pad1": self.pad1,
+                "runtime_coef": self.runtime_coef,
+            }
+        )
         return config
