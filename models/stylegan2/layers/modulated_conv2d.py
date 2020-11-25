@@ -29,19 +29,18 @@ class ModulatedConv2D(tf.keras.layers.Layer):
     ):
         super(ModulatedConv2D, self).__init__(**kwargs)
 
-        self.in_h_res = in_h_res
-        self.in_w_res = in_w_res
         self.in_fmaps = in_fmaps
-        self.fmaps = out_fmaps
+        self.out_fmaps = out_fmaps
         self.kernel_shape = kernel_shape
         self.demodulate = demodulate
         self.up = up
         self.fused_modconv = fused_modconv
+        self.in_h_res = in_h_res
+        self.in_w_res = in_w_res
         self.h_expand_factor = h_expand_factor
         self.w_expand_factor = w_expand_factor
         self.gain = gain
         self.lrmul = lrmul
-        # self.resample_kernel = resample_kernel
 
         self.k, self.pad0, self.pad1 = compute_paddings(
             resample_kernel, up, False, is_conv=True
@@ -53,7 +52,7 @@ class ModulatedConv2D(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         # x_shape, w_shape = input_shape[0], input_shape[1]
-        weight_shape = self.kernel_shape + [self.in_fmaps, self.fmaps]
+        weight_shape = self.kernel_shape + [self.in_fmaps, self.out_fmaps]
         init_std, self.runtime_coef = compute_runtime_coef(
             weight_shape, self.gain, self.lrmul
         )
@@ -116,7 +115,7 @@ class ModulatedConv2D(tf.keras.layers.Layer):
         if self.fused_modconv:
             # Fused => reshape convolution groups back to minibatch
             x_shape = tf.shape(x)
-            x = tf.reshape(x, [-1, self.fmaps, x_shape[2], x_shape[3]])
+            x = tf.reshape(x, [-1, self.out_fmaps, x_shape[2], x_shape[3]])
         elif self.demodulate:
             # [BOhw] Not fused => scale output activations
             x *= d[:, :, tf.newaxis, tf.newaxis]
@@ -136,7 +135,7 @@ class ModulatedConv2D(tf.keras.layers.Layer):
                 "in_w_res": self.in_w_res,
                 "in_h_res": self.in_h_res,
                 "in_fmaps": self.in_fmaps,
-                "fmaps": self.fmaps,
+                "out_fmaps": self.out_fmaps,
                 "kernel_shape": self.kernel_shape,
                 "demodulate": self.demodulate,
                 "fused_modconv": self.fused_modconv,
@@ -147,6 +146,8 @@ class ModulatedConv2D(tf.keras.layers.Layer):
                 "pad0": self.pad0,
                 "pad1": self.pad1,
                 "runtime_coef": self.runtime_coef,
+                "h_expand_factor": self.h_expand_factor,
+                "w_expand_factor": self.w_expand_factor,
             }
         )
         return config

@@ -39,7 +39,7 @@ def compute_paddings(resample_kernel, up, down, is_conv, convW=3, factor=2, gain
         if is_conv:
             p = (k.shape[0] - factor) + (convW - 1)
             pad0 = (p + 1) // 2
-            pad1 = p // 2
+            pad1 = p // 2 + 1
         else:
             p = k.shape[0] - factor
             pad0 = (p + 1) // 2
@@ -103,10 +103,11 @@ def upsample_conv_2d(x, w_res, h_res, w, pad0, pad1, k, w_factor, h_factor):
     return _simple_upfirdn_2d(x, new_x_res_h, new_x_res_w, k, pad0=pad0, pad1=pad1)
 
 
-def conv_downsample_2d(x, w_res, h_res, w, pad0, pad1, k):
+def conv_downsample_2d(x, w_res, h_res, w, pad0, pad1, k, reduce_height):
     w = tf.convert_to_tensor(w)
-    # convH, convW, _inC, _outC = w.shape.as_list()
-    s = [1, 1, 2, 2]
+    h_stride = 2 if reduce_height else 1
+    w_stride = 2
+    s = [1, 1, h_stride, w_stride]
     x = _simple_upfirdn_2d(x, w_res, h_res, k, pad0=pad0, pad1=pad1)
     return tf.nn.conv2d(x, w, strides=s, padding="VALID", data_format="NCHW")
 
