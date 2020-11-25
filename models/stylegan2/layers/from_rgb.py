@@ -5,15 +5,15 @@ from models.stylegan2.layers.bias_act import BiasAct
 
 
 class FromRGB(tf.keras.layers.Layer):
-    def __init__(self, fmaps, res, **kwargs):
+    def __init__(self, fmaps, h_res, w_res, **kwargs):
         super(FromRGB, self).__init__(**kwargs)
         self.fmaps = fmaps
-        self.res = res
+        self.h_res = h_res
+        self.w_res = w_res
 
         self.conv = Conv2D(
-            in_res=res,
             in_fmaps=3,
-            fmaps=self.fmaps,
+            out_fmaps=self.fmaps,
             kernel=1,
             down=False,
             resample_kernel=None,
@@ -31,6 +31,6 @@ class FromRGB(tf.keras.layers.Layer):
     def get_config(self):
         config = super(FromRGB, self).get_config()
         config.update(
-            {"fmaps": self.fmaps, "res": self.res,}
+            {"fmaps": self.fmaps, "h_res": self.h_res, "w_res": self.w_res,}
         )
         return config

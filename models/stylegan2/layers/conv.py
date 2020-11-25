@@ -10,31 +10,35 @@ from models.stylegan2.layers.cuda.upfirdn_2d_v2 import (
 class Conv2D(tf.keras.layers.Layer):
     def __init__(
         self,
-        in_res,
         in_fmaps,
-        fmaps,
+        out_fmaps,
         kernel,
         down,
         resample_kernel,
         gain,
         lrmul,
+        reduce_height=None,
+        in_h_res=None,
+        in_w_res=None,
         **kwargs
     ):
         super(Conv2D, self).__init__(**kwargs)
-        self.in_res = in_res
         self.in_fmaps = in_fmaps
-        self.fmaps = fmaps
+        self.out_fmaps = out_fmaps
         self.kernel = kernel
         self.gain = gain
         self.lrmul = lrmul
         self.down = down
+        self.reduce_height = reduce_height
+        self.in_h_res = in_h_res
+        self.in_w_res = in_w_res
 
         self.k, self.pad0, self.pad1 = compute_paddings(
-            resample_kernel, self.kernel, False, down, is_conv=True
+            resample_kernel, False, down, is_conv=True, convW=self.kernel
         )
 
     def build(self, input_shape):
-        weight_shape = [self.kernel, self.kernel, input_shape[1], self.fmaps]
+        weight_shape = [self.kernel, self.kernel, input_shape[1], self.out_fmaps]
         init_std, self.runtime_coef = compute_runtime_coef(
             weight_shape, self.gain, self.lrmul
         )
@@ -51,19 +55,15 @@ class Conv2D(tf.keras.layers.Layer):
         if self.down:
             x = conv_downsample_2d(
                 x,
-                self.in_res,
+                self.in_h_res,
+                self.in_w_res,
                 w,
-                self.kernel,
-                self.kernel,
                 self.pad0,
                 self.pad1,
                 self.k,
+                self.reduce_height,
             )
 
-            # # TODO: ensure this works
-            # x = conv_downsample_2d(
-            #     x, self.in_w_res, self.in_h_res, w, self.pad0, self.pad1, self.k,
-            # )
         else:
             x = tf.nn.conv2d(
                 x, w, data_format="NCHW", strides=[1, 1, 1, 1], padding="SAME"
@@ -74,9 +74,10 @@ class Conv2D(tf.keras.layers.Layer):
         config = super(Conv2D, self).get_config()
         config.update(
             {
-                "in_res": self.in_res,
+                "in_h_res": self.in_h_res,
+                "in_w_res": self.in_w_res,
                 "in_fmaps": self.in_fmaps,
-                "fmaps": self.fmaps,
+                "out_fmaps": self.out_fmaps,
                 "kernel": self.kernel,
                 "gain": self.gain,
                 "lrmul": self.lrmul,

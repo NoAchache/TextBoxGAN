@@ -5,23 +5,26 @@ from models.stylegan2.layers.conv import Conv2D
 from models.stylegan2.layers.bias_act import BiasAct
 from models.stylegan2.layers.from_rgb import FromRGB
 from models.stylegan2.layers.mini_batch_std import MinibatchStd
+from config import cfg
 
 
 class DiscriminatorBlock(tf.keras.layers.Layer):
-    def __init__(self, n_f0, n_f1, res, **kwargs):
+    def __init__(self, n_f0, n_f1, reduce_height, in_h_res, in_w_res, **kwargs):
         super(DiscriminatorBlock, self).__init__(**kwargs)
         self.gain = 1.0
         self.lrmul = 1.0
         self.n_f0 = n_f0
         self.n_f1 = n_f1
-        self.res = res
+        self.reduce_height = reduce_height
+        self.in_h_res = in_h_res
+        self.in_w_res = in_w_res
+
         self.resnet_scale = 1.0 / tf.sqrt(2.0)
 
         # conv_0
         self.conv_0 = Conv2D(
-            in_res=res,
             in_fmaps=self.n_f0,
-            fmaps=self.n_f0,
+            out_fmaps=self.n_f0,
             kernel=3,
             down=False,
             resample_kernel=None,
@@ -33,29 +36,33 @@ class DiscriminatorBlock(tf.keras.layers.Layer):
 
         # conv_1 down
         self.conv_1 = Conv2D(
-            in_res=res,
             in_fmaps=self.n_f0,
-            fmaps=self.n_f1,
+            out_fmaps=self.n_f1,
             kernel=3,
             down=True,
             resample_kernel=[1, 3, 3, 1],
             gain=self.gain,
             lrmul=self.lrmul,
             name="conv_1",
+            reduce_height=self.reduce_height,
+            in_h_res=self.in_h_res,
+            in_w_res=self.in_w_res,
         )
         self.apply_bias_act_1 = BiasAct(lrmul=self.lrmul, act="lrelu", name="bias_1")
 
         # resnet skip
         self.conv_skip = Conv2D(
-            in_res=res,
             in_fmaps=self.n_f0,
-            fmaps=self.n_f1,
+            out_fmaps=self.n_f1,
             kernel=1,
             down=True,
             resample_kernel=[1, 3, 3, 1],
             gain=self.gain,
             lrmul=self.lrmul,
             name="skip",
+            reduce_height=self.reduce_height,
+            in_h_res=self.in_h_res,
+            in_w_res=self.in_w_res,
         )
 
     def call(self, inputs, training=None, mask=None):
@@ -73,6 +80,7 @@ class DiscriminatorBlock(tf.keras.layers.Layer):
         # resnet skip
         residual = self.conv_skip(residual)
         x = (x + residual) * self.resnet_scale
+
         return x
 
     def get_config(self):
@@ -105,9 +113,8 @@ class DiscriminatorLastBlock(tf.keras.layers.Layer):
 
         # conv_0
         self.conv_0 = Conv2D(
-            in_res=res,
             in_fmaps=self.n_f0 + 1,
-            fmaps=self.n_f0,
+            out_fmaps=self.n_f0,
             kernel=3,
             down=False,
             resample_kernel=None,
@@ -150,22 +157,25 @@ class DiscriminatorLastBlock(tf.keras.layers.Layer):
 
 
 class Discriminator(tf.keras.Model):
-    def __init__(self, d_params, **kwargs):
+    def __init__(self, **kwargs):
         super(Discriminator, self).__init__(**kwargs)
         # discriminator's (resolutions and featuremaps) are reversed against generator's
-        self.r_resolutions = d_params["resolutions"][::-1]
-        self.r_featuremaps = d_params["featuremaps"][::-1]
+        self.resolutions = cfg.discrim_resolutions
+        self.feat_maps = cfg.discrim_feat_maps
 
         # stack discriminator blocks
-        res0, n_f0 = self.r_resolutions[0], self.r_featuremaps[0]
+        res0, n_f0 = self.resolutions[0], self.feat_maps[0]
         self.initial_fromrgb = FromRGB(
-            fmaps=n_f0, res=res0, name="{:d}x{:d}/FromRGB".format(res0, res0)
+            fmaps=n_f0,
+            h_res=res0[0],
+            w_res=res0[1],
+            name="{:d}x{:d}/FromRGB".format(res0[0], res0[1]),
         )
         self.blocks = list()
         for index, (res0, n_f0) in enumerate(
-            zip(self.r_resolutions[:-1], self.r_featuremaps[:-1])
+            zip(self.resolutions[:-1], self.feat_maps[:-1])
         ):
-            n_f1 = self.r_featuremaps[index + 1]
+            n_f1 = self.feat_maps[index + 1]
             self.blocks.append(
                 DiscriminatorBlock(
                     n_f0=n_f0, n_f1=n_f1, res=res0, name="{:d}x{:d}".format(res0, res0)
@@ -173,8 +183,8 @@ class Discriminator(tf.keras.Model):
             )
 
         # set last discriminator block
-        res = self.r_resolutions[-1]
-        n_f0, n_f1 = self.r_featuremaps[-2], self.r_featuremaps[-1]
+        res = self.resolutions[-1]
+        n_f0, n_f1 = self.feat_maps[-2], self.feat_maps[-1]
         self.last_block = DiscriminatorLastBlock(
             n_f0, n_f1, res, name="{:d}x{:d}".format(res, res)
         )

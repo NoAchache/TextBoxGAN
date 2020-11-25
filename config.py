@@ -4,22 +4,18 @@ from datetime import datetime
 import tensorflow as tf
 
 cfg = EasyDict()
-cfg = EasyDict()
 
-cfg = EasyDict()
-
-# Infere
+# Infere files
 EXPERIMENT_NAME = ""  # experiment to load from
 cfg.ckpt_path = osp.join("./checkpoints", EXPERIMENT_NAME)
 
-# Train
+# Train files
 # TODO: ensure it's not a diff name for everywhere cfg is loaded
 cfg.experiment_name = f"TextBoxGan_{datetime.now().strftime('%d-%m-%Y|%Hh%M')}"
 cfg.data_dir = "./data"
 cfg.source_datasets = osp.join(cfg.data_dir, "source_datasets")
 cfg.training_dir = osp.join(cfg.data_dir, "training_data")
 cfg.ckpt_dir = osp.join("./checkpoints", cfg.experiment_name)
-cfg.shuffle_seed = 4444
 
 # Text boxes specs
 cfg.im_width = 256
@@ -34,6 +30,8 @@ cfg.expand_char_w_res = [cfg.char_width / 2, cfg.char_width]
 cfg.expand_char_feat_maps = [512, 512]
 cfg.expand_word_h_res = [1, 2, 4, 8, 32, 64]
 cfg.expand_word_feat_maps = [512, 256, 256, 128, 128, 64]
+cfg.discrim_resolutions = []
+cfg.discim_feat_maps = []
 cfg.z_dim = 512
 cfg.style_dim = 512
 cfg.n_mapping = 5
@@ -45,10 +43,12 @@ cfg.encoded_char_width = (
 # Resources
 cfg.num_gpus = 1
 cfg.num_workers = 5
-
-cfg.batch_size_per_gpu = 16
 cfg.strategy = tf.distribute.MirroredStrategy()
+cfg.batch_size_per_gpu = 16
 cfg.batch_size = cfg.batch_size_per_gpu * cfg.strategy.num_replicas_in_sync
+
+# Others
+cfg.shuffle_seed = 4444
 
 
 # cha = 24
