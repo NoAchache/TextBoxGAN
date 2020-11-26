@@ -1,43 +1,35 @@
-import os
 import time
-import argparse
-import numpy as np
 import tensorflow as tf
 
 from utils.tf_utils import allow_memory_growth
-from training_steps import TrainingSteps
-from utils import LogSummary
+from training_step import TrainingStep
+from utils import LogSummary, LossTracker
 from config import cfg
 from dataset_utils.data_loader import DataLoader
 from models.model_loader import ModelLoader
 
 
 class Trainer(object):
-    def __init__(self, t_params):
-        self.model_base_dir = t_params["model_base_dir"]
-        self.global_batch_size = t_params["batch_size"]
-        self.n_total_image = t_params["n_total_image"]
-        self.max_steps = int(np.ceil(self.n_total_image / self.global_batch_size))
-        self.n_samples = min(t_params["batch_size"], t_params["n_samples"])
-        self.train_res = t_params["train_res"]
-        self.print_step = 10
-        self.save_step = 100
-        self.image_summary_step = 100
-        self.reached_max_steps = False
-        self.log_template = "{:s}, {:s}, {:s}".format(
-            "step {}: elapsed: {:.2f}s, d_loss: {:.3f}, g_loss: {:.3f}",
-            "d_gan_loss: {:.3f}, g_gan_loss: {:.3f}",
-            "r1_penalty: {:.3f}, pl_penalty: {:.3f}",
-        )
+    def __init__(self):
+        if cfg.allow_memory_growth:
+            allow_memory_growth()
 
-        # copy network params
-        self.g_params = t_params["g_params"]
-        self.d_params = t_params["d_params"]
+        self.batch_size = cfg.batch_size
+        self.strategy = cfg.strategy
+        self.max_epochs = cfg.max_epochs
+        self.n_samples = min(self.batch_size, cfg.n_samples)
+
+        self.print_step = cfg.print_step
+
+        self.save_step = cfg.save_step
+
+        self.log_step = cfg.log_step
+        self.log_dir = cfg.log_dir
+        self.log_summary = LogSummary()
 
         # set optimizer params
-        self.global_batch_scaler = 1.0 / float(self.global_batch_size)
-        self.g_opt = self.update_optimizer_params(t_params["g_opt"])
-        self.d_opt = self.update_optimizer_params(t_params["d_opt"])
+        self.g_opt = self.update_optimizer_params(cfg.g_opt)
+        self.d_opt = self.update_optimizer_params(cfg.d_opt)
         self.pl_mean = tf.Variable(
             initial_value=0.0,
             name="pl_mean",
@@ -45,13 +37,14 @@ class Trainer(object):
             synchronization=tf.VariableSynchronization.ON_READ,
             aggregation=tf.VariableAggregation.ONLY_FIRST_REPLICA,
         )
+
         self.model_loader = ModelLoader()
         # create model: model and optimizer must be created under `strategy.scope`
         (
             self.discriminator,
             self.generator,
             self.g_clone,
-        ) = self.model_loader.initiate_models(self.g_params, self.d_params)
+        ) = self.model_loader.initiate_models()
 
         # set optimizers
         self.d_optimizer = tf.keras.optimizers.Adam(
@@ -67,16 +60,20 @@ class Trainer(object):
             epsilon=self.g_opt["epsilon"],
         )
 
-        self.log_summary = LogSummary()
-        self.training_steps = TrainingSteps(
+        self.training_step = TrainingStep(
             self.generator,
             self.discriminator,
             self.g_optimizer,
             self.d_optimizer,
             self.g_opt["reg_interval"],
             self.d_opt["reg_interval"],
+            self.batch_size,
+            self.pl_mean,
         )
+        # TODO:add loss tracking
+        # TODO:add tf logging (image with label as name)
 
+        # TODO: what is zis?
         self.manager = self.model_loader.load_checkpoint(
             ckpt_kwargs={
                 "d_optimizer": self.d_optimizer,
@@ -102,29 +99,21 @@ class Trainer(object):
         return params_copy
 
     def train(self):
-        with cfg.strategy.scope():
-            dataset = DataLoader().load_dataset(shuffle=True)
-            dataset = cfg.strategy.experimental_distribute_dataset(dataset)
+        with self.strategy.scope():
+            dataset = DataLoader().load_dataset(
+                shuffle=True, epochs=self.max_epochs, batch_size=self.batch_size
+            )
+            dataset = self.strategy.experimental_distribute_dataset(dataset)
 
             # wrap with tf.function
-            dist_d_train_step = tf.function(self.training_steps.dist_d_train_step)
-            dist_g_train_step = tf.function(self.training_steps.dist_g_train_step)
-            dist_d_train_step_reg = tf.function(
-                self.training_steps.dist_d_train_step_reg
-            )
-            dist_g_train_step_reg = tf.function(
-                self.training_steps.dist_g_train_step_reg
-            )
+            dist_train_step = tf.function(self.training_step.dist_train_step)
             dist_gen_samples = tf.function(self.log_summary.dist_gen_samples)
-
-            if self.reached_max_steps:
-                return
 
             # start actual training
             print("Start Training")
 
             # setup tensorboards
-            train_summary_writer = tf.summary.create_file_writer(self.ckpt_dir)
+            train_summary_writer = tf.summary.create_file_writer(self.log_dir)
 
             # loss metrics
             metric_d_loss = tf.keras.metrics.Mean("d_loss", dtype=tf.float32)
@@ -135,31 +124,22 @@ class Trainer(object):
             metric_pl_penalty = tf.keras.metrics.Mean("pl_penalty", dtype=tf.float32)
 
             # start training
-            zero = tf.constant(0.0, dtype=tf.float32)
-            print("max_steps: {}".format(self.max_steps))
+            zero = tf.constant(0.0, dtype=tf.float32)  # TODO: delete
             t_start = time.time()
             for real_images in dataset:
                 step = self.g_optimizer.iterations.numpy()
 
-                # d train step
-                if (step + 1) % self.d_opt["reg_interval"] == 0:
-                    d_loss, d_gan_loss, r1_penalty = dist_d_train_step_reg(
-                        (real_images,)
-                    )
-                else:
-                    d_loss = dist_d_train_step((real_images,))
-                    d_gan_loss = d_loss
-                    r1_penalty = zero
-
                 # g train step
-                if (step + 1) % self.g_opt["reg_interval"] == 0:
-                    g_loss, g_gan_loss, pl_penalty = dist_g_train_step_reg(
-                        (real_images,)
-                    )
-                else:
-                    g_loss = dist_g_train_step((real_images,))
-                    g_gan_loss = g_loss
-                    pl_penalty = zero
+                do_r1_reg = (step + 1) % self.d_opt["reg_interval"] == 0
+                do_pl_reg = (step + 1) % self.g_opt["reg_interval"] == 0
+
+                gen_losses, disc_losses = dist_train_step(
+                    real_images, do_r1_reg, do_pl_reg
+                )
+                reg_g_loss, g_loss, pl_penalty = gen_losses
+                reg_d_loss, d_loss, r1_penalty = disc_losses
+
+                # TODO: rename all the reg_g_loss, etc...
 
                 # update g_clone
                 self.g_clone.set_as_moving_average_of(self.generator)
@@ -175,6 +155,7 @@ class Trainer(object):
                 # get current step
                 step = self.g_optimizer.iterations.numpy()
 
+                # TODO: export to log summary
                 # save to tensorboard
                 with train_summary_writer.as_default():
                     tf.summary.scalar("d_loss", metric_d_loss.result(), step=step)
@@ -233,10 +214,6 @@ class Trainer(object):
                     # reset timer
                     t_start = time.time()
 
-                # check exit status
-                if step >= self.max_steps:
-                    break
-
             # save last checkpoint
             step = self.g_optimizer.iterations.numpy()
             self.manager.save(checkpoint_number=step)
@@ -253,57 +230,6 @@ class Trainer(object):
         return as_tensor
 
 
-def main():
-    # global program arguments parser
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument(
-        "--allow_memory_growth", type=str_to_bool, nargs="?", const=True, default=True
-    )
-    parser.add_argument(
-        "--debug_split_gpu", type=str_to_bool, nargs="?", const=True, default=False
-    )
-
-    parser.add_argument("--model_base_dir", default="./models", type=str)
-    parser.add_argument("--tfrecord_dir", default="./tfrecords", type=str)
-    args = vars(parser.parse_args())
-
-    # GPU environment settings
-    if args["allow_memory_growth"]:
-        allow_memory_growth()
-    if args["debug_split_gpu"]:
-        split_gpu_for_testing(mem_in_gb=4.5)
-
-    # training parameters
-    training_parameters = {
-        # global params
-        "model_base_dir": args["model_base_dir"],
-        # network params
-        "g_params": g_params,
-        "d_params": d_params,
-        # training params
-        "g_opt": {
-            "learning_rate": 0.002,
-            "beta1": 0.0,
-            "beta2": 0.99,
-            "epsilon": 1e-08,
-            "reg_interval": 8,
-        },
-        "d_opt": {
-            "learning_rate": 0.002,
-            "beta1": 0.0,
-            "beta2": 0.99,
-            "epsilon": 1e-08,
-            "reg_interval": 16,
-        },
-        "n_total_image": 25000000,
-        "n_samples": 3,
-        "train_res": args["train_res"],
-    }
-
-    trainer = Trainer(training_parameters)
-    trainer.train()
-    return
-
-
 if __name__ == "__main__":
-    main()
+    trainer = Trainer()
+    trainer.train()

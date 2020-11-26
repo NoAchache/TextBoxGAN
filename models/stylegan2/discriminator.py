@@ -99,13 +99,12 @@ class DiscriminatorBlock(tf.keras.layers.Layer):
 
 
 class DiscriminatorLastBlock(tf.keras.layers.Layer):
-    def __init__(self, n_f0, n_f1, res, **kwargs):
+    def __init__(self, n_f0, n_f1, **kwargs):
         super(DiscriminatorLastBlock, self).__init__(**kwargs)
         self.gain = 1.0
         self.lrmul = 1.0
         self.n_f0 = n_f0
         self.n_f1 = n_f1
-        self.res = res
 
         self.minibatch_std = MinibatchStd(
             group_size=4, num_new_features=1, name="minibatchstd"
@@ -150,7 +149,6 @@ class DiscriminatorLastBlock(tf.keras.layers.Layer):
                 "n_f1": self.n_f1,
                 "gain": self.gain,
                 "lrmul": self.lrmul,
-                "res": self.res,
             }
         )
         return config
@@ -171,22 +169,29 @@ class Discriminator(tf.keras.Model):
             w_res=res0[1],
             name="{:d}x{:d}/FromRGB".format(res0[0], res0[1]),
         )
+
         self.blocks = list()
-        for index, (res0, n_f0) in enumerate(
-            zip(self.resolutions[:-1], self.feat_maps[:-1])
+        prev_res_h = res0[0]
+        for res, f_m0, f_m1 in zip(
+            self.resolutions[:-1], self.feat_maps[:-1], self.feat_maps[1:]
         ):
-            n_f1 = self.feat_maps[index + 1]
             self.blocks.append(
                 DiscriminatorBlock(
-                    n_f0=n_f0, n_f1=n_f1, res=res0, name="{:d}x{:d}".format(res0, res0)
-                )
+                    n_f0=f_m0,
+                    n_f1=f_m1,
+                    reduce_height=res[0] == prev_res_h,
+                    in_h_res=res[0],
+                    in_w_res=res[1],
+                    name="{:d}x{:d}".format(res[0], res0[1]),
+                ),
             )
+            prev_res_h = res[0]
 
         # set last discriminator block
-        res = self.resolutions[-1]
+        res_final = self.resolutions[-1]
         n_f0, n_f1 = self.feat_maps[-2], self.feat_maps[-1]
         self.last_block = DiscriminatorLastBlock(
-            n_f0, n_f1, res, name="{:d}x{:d}".format(res, res)
+            n_f0, n_f1, name="{:d}x{:d}".format(res_final[0], res_final[1])
         )
 
         # set last dense layer
