@@ -21,7 +21,7 @@ class Generator(tf.keras.Model):
     def call(
         self,
         inputs,
-        ret_w_broadcasted=False,
+        ret_style=False,
         truncation_psi=1.0,
         truncation_cutoff=None,
         training=None,
@@ -33,11 +33,8 @@ class Generator(tf.keras.Model):
 
         image_out = self.synthesis([word_encoded, style[-self.n_style_s :]])
 
-        if ret_w_broadcasted:
-            return (
-                image_out,
-                word_encoded,
-            )  # w_broadcasted #TODO: dans quel cas c'est appelé?
+        if ret_style:
+            return image_out, style
         else:
             return image_out
 

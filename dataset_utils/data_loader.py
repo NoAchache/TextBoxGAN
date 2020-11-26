@@ -11,11 +11,18 @@ class DataLoader:
     def __init__(self):
         np.random.seed(cfg.shuffle_seed)
 
-    def load_dataset(self, shuffle: bool) -> tf.data.Dataset:
-        dataset = tf.data.Dataset.from_generator(
-            self._data_generator, output_types=(tf.float32, tf.int8), args=([shuffle]),
+    def load_dataset(
+        self, shuffle: bool, epochs: int, batch_size: int
+    ) -> tf.data.Dataset:
+        dataset = (
+            tf.data.Dataset.from_generator(
+                self._data_generator,
+                output_types=(tf.float32, tf.int8),
+                args=([shuffle]),
+            )
+            .repeat(epochs)
+            .batch(batch_size)
         )
-        dataset = dataset.batch(cfg.batch_size)
         return dataset
 
     def _data_generator(self, shuffle: bool) -> (np.ndarray, np.ndarray):
