@@ -1,11 +1,12 @@
 import time
 import tensorflow as tf
+import tensorflow as tf
 
 from utils.tf_utils import allow_memory_growth
 from training_step import TrainingStep
 from utils import LogSummary, LossTracker
 from config import cfg
-from dataset_utils.data_loader import DataLoader
+from dataset_utils.data_loader import load_dataset
 from models.model_loader import ModelLoader
 
 
@@ -100,7 +101,7 @@ class Trainer(object):
 
     def train(self):
         with self.strategy.scope():
-            dataset = DataLoader().load_dataset(
+            dataset = load_dataset(
                 shuffle=True, epochs=self.max_epochs, batch_size=self.batch_size
             )
             dataset = self.strategy.experimental_distribute_dataset(dataset)
@@ -126,6 +127,7 @@ class Trainer(object):
             # start training
             zero = tf.constant(0.0, dtype=tf.float32)  # TODO: delete
             t_start = time.time()
+
             for real_images in dataset:
                 step = self.g_optimizer.iterations.numpy()
 
