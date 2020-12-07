@@ -4,6 +4,8 @@ import os
 from datetime import datetime
 import tensorflow as tf
 
+from config.char_tokens import CharTokenizer
+
 cfg = EasyDict()
 
 WORKING_DIR = os.getcwd()
@@ -30,7 +32,7 @@ cfg.char_height = 64  # height of a character (i.e. height of the image)
 cfg.char_width = int(cfg.im_width / cfg.max_chars)  # width of a character
 
 # Model
-cfg.embedding_dim = 32
+cfg.embedding_out_dim = 32
 cfg.expand_char_w_res = [cfg.char_width / 2, cfg.char_width]
 cfg.expand_char_feat_maps = [512, 512]
 cfg.expand_word_h_res = [1, 2, 4, 8, 32, 64]
@@ -90,13 +92,7 @@ cfg.aster_img_dims = (256, 64)
 cfg.shuffle_seed = 4444
 cfg.max_epochs = 100000
 cfg.save_step = 500
-
-
-# cha = 24
-#
-# n_layers = int(log2(im_size) - 1)
-#
-# mixed_prob = 0.9
+cfg.char_tokenizer = CharTokenizer()  #TODO check not instantiated every call with print
 
 
 def print_config(config):

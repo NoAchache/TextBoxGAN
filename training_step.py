@@ -1,7 +1,8 @@
 import tensorflow as tf
 
 from config import cfg
-from losses.losses import Losses
+from losses.gan_losses import GeneratorLoss
+from aster_ocr_utils.aster_inferer import AsterInferer
 
 
 class TrainingStep:
@@ -33,12 +34,13 @@ class TrainingStep:
         self.pl_noise_scaler = tf.math.rsqrt(
             float(cfg.im_width) * float(cfg.char_height)
         )
+        self.aster = AsterInferer()
 
-        self.losses = Losses()
+        self.losses = GanLosses()
 
-    def dist_train_step(self, real_images, do_r1_reg, do_pl_reg):
+    def dist_train_step(self, real_images, real_images_ocr, labels, do_r1_reg, do_pl_reg):
         gen_losses, disc_losses = cfg.strategy.experimental_run_v2(
-            fn=self._train_step, args=(real_images, do_r1_reg, do_pl_reg)
+            fn=self._train_step, args=(real_images, real_images_ocr, labels, do_r1_reg, do_pl_reg)
         )
 
         # Reduce generator losses
@@ -71,7 +73,7 @@ class TrainingStep:
         mean_disc_losses = (mean_reg_d_loss, mean_d_loss, mean_r1_penalty)
         return mean_gen_losses, mean_disc_losses
 
-    def _train_step(self, real_images, do_r1_reg, do_pl_reg):
+    def _train_step(self, real_images, real_images_ocr, labels, do_r1_reg, do_pl_reg):
         with tf.GradientTape() as d_tape, tf.GradientTape() as g_tape:
             z = tf.random.normal(shape=[self.batch_size, self.z_dim], dtype=tf.float32)
             fake_images = self.generator(z, training=True)
@@ -81,6 +83,7 @@ class TrainingStep:
             reg_d_loss, d_loss, r1_penalty = self._get_disc_losses(
                 fake_images, real_images, do_r1_reg
             )
+            self._get_ocr_loss(real_images_ocr, labels)
 
         g_gradients = g_tape.gradient(reg_g_loss, self.generator.trainable_variables)
         self.g_optimizer.apply_gradients(
@@ -166,3 +169,8 @@ class TrainingStep:
         r1_penalty = r1_penalty * (0.5 * self.r1_gamma) * self.d_reg_interval
         r1_penalty = tf.reduce_sum(r1_penalty) / self.batch_size  # scales penalty
         return real_scores, r1_penalty
+
+    def _get_ocr_loss(self, real_images_ocr, labels):
+        o=self.aster.run(real_images_ocr)
+        self.losses.ocr_loss(o, labels)
+
