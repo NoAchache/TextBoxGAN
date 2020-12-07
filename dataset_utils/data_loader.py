@@ -1,10 +1,11 @@
-from config import cfg
-from utils import encode_label
-
 import tensorflow as tf
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 import os
 import numpy as np
 import cv2
+
+from config import cfg
+
 
 def load_dataset(
     shuffle: bool, epochs: int, batch_size: int
@@ -12,7 +13,7 @@ def load_dataset(
     dataset = (
         tf.data.Dataset.from_generator(
             data_generator,
-            output_types=(tf.float32, tf.float32, tf.int8),
+            output_types=(tf.float32, tf.float32, tf.int32, tf.int32),
             args=([shuffle]),
         )
         .repeat(epochs)
@@ -20,11 +21,11 @@ def load_dataset(
     )
     return dataset
 
-def data_generator(shuffle: bool) -> (np.ndarray, np.ndarray, np.ndarray):
+def data_generator(shuffle: bool) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
     np.random.seed(cfg.shuffle_seed)
 
     with open(
-        os.path.join(cfg.training_dir, "annotations.txt"), "r"
+        os.path.join(cfg.training_dir, "annotations_filtered.txt"), "r"
     ) as annotations:
         lines = annotations.readlines()
         if shuffle:
@@ -33,19 +34,17 @@ def data_generator(shuffle: bool) -> (np.ndarray, np.ndarray, np.ndarray):
 
             img_name, label = data.split(",", 1)
             label = label.strip("\n")
-            if len(label) not in range(cfg.min_chars, cfg.max_chars + 1):
-                continue
             img = cv2.imread(os.path.join(cfg.training_dir, img_name))
             h, w, _ = img.shape
 
             main_img = cv2.resize(img, (cfg.char_width * len(label), cfg.char_height))
-            ocr_img = cv2.resize(img, cfg.aster_img_dims)
+            ocr_img = cv2.resize(img, (cfg.aster_img_dims[0], cfg.aster_img_dims[1]))
 
             main_img = main_img.astype(np.float32) / 127.5 - 1.0
             ocr_img = ocr_img.astype(np.float32) / 127.5 - 1.0
 
             padding_length = (cfg.max_chars - len(label)) * cfg.char_width
-            padded_img = cv2.copyMakeBorder(
+            main_padded_img = cv2.copyMakeBorder(
                 src=main_img,
                 top=0,
                 bottom=0,
@@ -54,10 +53,11 @@ def data_generator(shuffle: bool) -> (np.ndarray, np.ndarray, np.ndarray):
                 borderType=cv2.BORDER_CONSTANT,
             )
 
-            padded_img = np.transpose(padded_img, (2, 0, 1))  # H,W,C to C,H,W
-            encoded_label = encode_label(label)
-            padded_label = np.concatenate(
-                (encoded_label, np.array([-1] * (cfg.max_chars - len(label))))
-            )
+            main_padded_img = np.transpose(main_padded_img, (2, 0, 1))  # H,W,C to C,H,W
+            main_encoded_label = cfg.char_tokenizer.main.texts_to_sequences([label])
+            main_padded_label = pad_sequences(main_encoded_label, maxlen=cfg.max_chars, value=1, padding='post')[0]
+            ocr_encoded_label = cfg.char_tokenizer.aster.texts_to_sequences([label])
+            ocr_padded_label = pad_sequences(ocr_encoded_label, maxlen=cfg.max_chars, value=1, padding='post')[0]
 
-            yield padded_img, ocr_img,  padded_label
+            #TODO: remove ocr image
+            yield main_padded_img, ocr_img,  main_padded_label, ocr_padded_label

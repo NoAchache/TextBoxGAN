@@ -1,7 +1,5 @@
 import tensorflow as tf
 
-from config import cfg
-
 OLD_AND_NEW_NAMES = {
     "weights": "kernel",
     "fully_connected": "dense",
@@ -14,11 +12,12 @@ OLD_AND_NEW_NAMES = {
     "Predictor/memory_layer": "Predictor/BahdanauAttention",
 }
 
-ASTER_ORIGINAL_WEIGHTS = "../aster/experiments/demo/log"
-ASTER_MODIFIED_WEIGHTS = cfg.aster_weights
+ASTER_ORIGINAL_WEIGHTS = ""  # path to aster weights
+ASTER_MODIFIED_WEIGHTS = ""  # local path
 
 
 def rename_weigths():
+
     tf1_weights = ASTER_ORIGINAL_WEIGHTS
     tf2_weights = ASTER_MODIFIED_WEIGHTS
 

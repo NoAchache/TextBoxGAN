@@ -11,7 +11,6 @@ from tensorflow.keras.layers import (
 )
 
 
-from utils import NUM_CLASSES
 from config import cfg
 from models.stylegan2.layers.synthesis_block import SynthesisBlock
 
@@ -53,8 +52,9 @@ class CharEncoder(tf.keras.Model):
         self.dense_dim = dense_dim
         self.dropout_rate = dropout_rate
 
+        embedding_in_dim= len(cfg.main_tokens.word_index) -1
         self.char_embedding = Embedding(
-            NUM_CLASSES, cfg.embedding_dim, input_length=cfg.max_chars
+                embedding_in_dim, cfg.embedding_out_dim, input_length=cfg.max_chars
         )
 
         self.dropout = Dropout(self.dropout_rate)

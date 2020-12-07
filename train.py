@@ -1,6 +1,5 @@
 import time
 import tensorflow as tf
-import tensorflow as tf
 
 from utils.tf_utils import allow_memory_growth
 from training_step import TrainingStep
@@ -128,7 +127,7 @@ class Trainer(object):
             zero = tf.constant(0.0, dtype=tf.float32)  # TODO: delete
             t_start = time.time()
 
-            for real_images in dataset:
+            for real_images, real_images_ocr, labels in dataset:
                 step = self.g_optimizer.iterations.numpy()
 
                 # g train step
@@ -136,7 +135,7 @@ class Trainer(object):
                 do_pl_reg = (step + 1) % self.g_opt["reg_interval"] == 0
 
                 gen_losses, disc_losses = dist_train_step(
-                    real_images, do_r1_reg, do_pl_reg
+                    real_images, real_images_ocr, labels, do_r1_reg, do_pl_reg
                 )
                 reg_g_loss, g_loss, pl_penalty = gen_losses
                 reg_d_loss, d_loss, r1_penalty = disc_losses
@@ -235,3 +234,8 @@ class Trainer(object):
 if __name__ == "__main__":
     trainer = Trainer()
     trainer.train()
+
+
+
+
+
