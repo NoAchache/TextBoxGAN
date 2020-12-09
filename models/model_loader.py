@@ -9,14 +9,14 @@ import tensorflow as tf
 class ModelLoader:
     def initiate_models(self):
         discriminator = self._load_discriminator()
-        generator = self._load_generator(is_g_clone=False, ckpt_dir=None)
+        generator = self.load_generator(is_g_clone=False, ckpt_dir=None)
         g_clone = self._load_generator(is_g_clone=True, ckpt_dir=None)
 
         # set initial g_clone weights same as generator
         g_clone.set_weights(generator.get_weights())
         return discriminator, generator, g_clone
 
-    def _load_generator(self, is_g_clone=False, ckpt_dir=None):
+    def load_generator(self, is_g_clone=False, ckpt_dir=None):
 
         test_latent = tf.ones((1, cfg.z_dim), dtype=tf.float32)
 

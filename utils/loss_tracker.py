@@ -1,70 +1,53 @@
 from time import time
+from tensorflow.keras.metrics import Mean
+import tensorflow as tf
 
 
 class LossTracker(object):
-    def __init__(self):
-        self.log_template = "{:s}, {:s}, {:s}".format(
-            "step {}: elapsed: {:.2f}s, d_loss: {:.3f}, g_loss: {:.3f}",
-            "d_gan_loss: {:.3f}, g_gan_loss: {:.3f}",
-            "r1_penalty: {:.3f}, pl_penalty: {:.3f}",
-        )
+    def __init__(self, print_step):
+        self.print_step = print_step
+        self._initiate_loss_tracking()
 
-        self.initiate_loss_tracking()
-        self.counter = 0
+    def _initiate_loss_tracking(self):
+        self.loss_names = [
+            "reg_g_loss",
+            "g_loss",
+            "pl_penalty",
+            "ocr_loss",
+            "reg_d_loss",
+            "d_loss",
+            "r1_penalty",
+        ]
 
-    def initiate_loss_tracking(self):
-        self.gen_total_loss = AverageMeter()
-        self.seg_loss = AverageMeter()
-        self.recog_losses = AverageMeter()
-        self.tr_losses = AverageMeter()
-        self.tcl_losses = AverageMeter()
-        self.sin_losses = AverageMeter()
-        self.cos_losses = AverageMeter()
-        self.radii_losses = AverageMeter()
+        self.losses = {loss_name: Mean(loss_name, dtype=tf.float32) for loss_name in self.loss_names}
 
-        self.timer = AverageMeter()
+        self.timer = Mean("timer", dtype=tf.float32)
         self.start_time = time()
 
-    def _update_loss(self, attribute, loss):
-        if loss.item() > 0:
-            attribute.update(loss.item())
+    def increment_losses(self, losses: dict):
+        for loss_name, loss_value in losses.items():
+            self.losses[loss_name](loss_value)
 
-    def increment_losses(self, all_losses):
-        assert len(all_losses) == 8
-
-        self._update_loss(self.total_losses, all_losses[0])
-        self._update_loss(self.seg_losses, all_losses[1])
-        self._update_loss(self.recog_losses, all_losses[2])
-        self._update_loss(self.tr_losses, all_losses[3])
-        self._update_loss(self.tcl_losses, all_losses[4])
-        self._update_loss(self.sin_losses, all_losses[5])
-        self._update_loss(self.cos_losses, all_losses[6])
-        self._update_loss(self.radii_losses, all_losses[7])
-
-        self.timer.update(time() - self.start_time)
+        self.timer(time() - self.start_time)
         self.start_time = time()
 
-        self.counter += 1
+    def print_losses(self, step):
 
-    def print_losses(self, epoch, ite, len_loader):
-        print(
-            "epoch: {} ({:d} / {:d}). Avg over the last {:d} steps. {:.2f} s/step. Losses: - Total: {:.4f} - Segmentation: {:.4f} - Recognition: {:.4f} - tr: {:.4f} - tcl: {:.4f} "
-            "- sin: {:.4f} - cos: {:.4f} - radii: {:.4f}".format(
-                epoch,
-                ite,
-                len_loader,
-                self.counter,
-                self.timer.avg,
-                self.total_losses.avg,
-                self.seg_losses.avg,
-                self.recog_losses.avg,
-                self.tr_losses.avg,
-                self.tcl_losses.avg,
-                self.sin_losses.avg,
-                self.cos_losses.avg,
-                self.radii_losses.avg,
-            )
+        start_print = "Step: {}. Avg over the last {:d} steps. {:.2f} s/step. Losses:".format(
+            step, self.timer.count.numpy(), self.timer.result().numpy()
         )
+
+        loss_print = ", ".join(
+            [
+                "- {:s}: {:.4f}".format(loss_name, self.losses[loss_name].result().numpy())
+                for loss_name in self.loss_names
+            ]
+        )
+
+        print(start_print + loss_print)
+
+    def reinitialize_tracker(self):
+        self._initiate_loss_tracking()
 
     def write_dict(self):
         loss_dict = {
