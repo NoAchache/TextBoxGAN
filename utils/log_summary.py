@@ -1,8 +1,8 @@
 import tensorflow as tf
 from config import cfg
 
-#TODO: print ocr results:
-#tf.nn.ctc_greedy_decoder(tf.transpose(forward_logits, [1,0,2]), [forward_logits.shape[1]], merge_repeated=False)[0][0].values
+# TODO: print ocr results:
+# tf.nn.ctc_greedy_decoder(tf.transpose(forward_logits, [1,0,2]), [forward_logits.shape[1]], merge_repeated=False)[0][0].values
 class LogSummary:
     def dist_gen_samples(self, inputs, generator):
         return cfg.strategy.experimental_run_v2(

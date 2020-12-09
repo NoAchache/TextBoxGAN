@@ -60,7 +60,7 @@ class TextBoxDatasetMaker:
             for line in lines:
                 img_name, language, label = line.split(",", 2)
                 if language in valid_languages and not any(
-                        (c not in MAIN_CHAR_VECTOR) for c in label.strip("\n")
+                    (c not in MAIN_CHAR_VECTOR) for c in label.strip("\n")
                 ):
                     new_img_name = f"{img_prefix}_{img_name}"
                     # open the file and save it to the right folder instead of simply copying the file

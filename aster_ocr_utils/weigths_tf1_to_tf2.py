@@ -5,8 +5,8 @@ OLD_AND_NEW_NAMES = {
     "fully_connected": "dense",
     "biases": "bias",
     "Predictor/decoder/dense": "Predictor/dense",
-    "Backward/Predictor/decoder/sync_attention_wrapper/bahdanau_attention/query_layer": "BeamSearchDecoderStep/sync_attention_wrapper_1/BahdanauAttention",
-    "Forward/Predictor/decoder/sync_attention_wrapper/bahdanau_attention/query_layer": "BeamSearchDecoderStep/sync_attention_wrapper/BahdanauAttention",
+    "Backward/Predictor/decoder/sync_attention_wrapper/bahdanau_attention/query_layer": "sync_attention_wrapper_1/BahdanauAttention",
+    "Forward/Predictor/decoder/sync_attention_wrapper/bahdanau_attention/query_layer": "sync_attention_wrapper/BahdanauAttention",
     "Predictor/decoder/sync_attention_wrapper/lstm_cell": "Predictor/lstm_cell",
     "decoder/sync_attention_wrapper/bahdanau_attention/attention_v": "BahdanauAttention/attention_v",
     "Predictor/memory_layer": "Predictor/BahdanauAttention",
@@ -43,5 +43,6 @@ def rename_weigths():
         )
         saver.save(sess, tf2_weights)
 
-if __name__ =="__main__":
+
+if __name__ == "__main__":
     rename_weigths()

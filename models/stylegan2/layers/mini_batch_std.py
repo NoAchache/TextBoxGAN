@@ -11,7 +11,17 @@ class MinibatchStd(tf.keras.layers.Layer):
         s = tf.shape(inputs)
         group_size = tf.minimum(self.group_size, s[0])
 
-        y = tf.reshape(inputs, [group_size, -1, self.num_new_features, s[1] // self.num_new_features, s[2], s[3]])
+        y = tf.reshape(
+            inputs,
+            [
+                group_size,
+                -1,
+                self.num_new_features,
+                s[1] // self.num_new_features,
+                s[2],
+                s[3],
+            ],
+        )
         y = tf.cast(y, tf.float32)
         y -= tf.reduce_mean(y, axis=0, keepdims=True)
         y = tf.reduce_mean(tf.square(y), axis=0)
@@ -26,8 +36,7 @@ class MinibatchStd(tf.keras.layers.Layer):
 
     def get_config(self):
         config = super(MinibatchStd, self).get_config()
-        config.update({
-            'group_size': self.group_size,
-            'num_new_features': self.num_new_features,
-        })
+        config.update(
+            {"group_size": self.group_size, "num_new_features": self.num_new_features,}
+        )
         return config

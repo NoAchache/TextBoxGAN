@@ -47,14 +47,24 @@ def random_flip_left_right_nchw(images):
 
 
 def preprocess_fit_train_image(images, res):
-    images = adjust_dynamic_range(images, range_in=(0.0, 255.0), range_out=(-1.0, 1.0), out_dtype=tf.dtypes.float32)
+    images = adjust_dynamic_range(
+        images,
+        range_in=(0.0, 255.0),
+        range_out=(-1.0, 1.0),
+        out_dtype=tf.dtypes.float32,
+    )
     images = random_flip_left_right_nchw(images)
     images.set_shape([None, 3, res, res])
     return images
 
 
 def postprocess_images(images):
-    images = adjust_dynamic_range(images, range_in=(-1.0, 1.0), range_out=(0.0, 255.0), out_dtype=tf.dtypes.float32)
+    images = adjust_dynamic_range(
+        images,
+        range_in=(-1.0, 1.0),
+        range_out=(0.0, 255.0),
+        out_dtype=tf.dtypes.float32,
+    )
     images = tf.transpose(images, [0, 2, 3, 1])
     images = tf.cast(images, dtype=tf.dtypes.uint8)
     return images
@@ -69,7 +79,9 @@ def merge_batch_images(images, res, rows, cols):
         for col in range(cols):
             x_start = col * res
             index = col + row * cols
-            canvas[y_start:y_start + res, x_start:x_start + res, :] = images[index, :, :, :]
+            canvas[y_start : y_start + res, x_start : x_start + res, :] = images[
+                index, :, :, :
+            ]
     return canvas
 
 
@@ -108,5 +120,5 @@ def main():
     return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
