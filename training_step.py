@@ -43,7 +43,7 @@ class TrainingStep:
         self.softmax_cross_entropy = SoftmaxCrossEntropyLoss()
 
     def dist_train_step(self, real_images, input_texts, labels, do_r1_reg, do_pl_reg):
-        gen_losses, disc_losses = cfg.strategy.experimental_run_v2(
+        gen_losses, disc_losses, ocr_loss = cfg.strategy.experimental_run_v2(
             fn=self._train_step,
             args=(real_images, input_texts, labels, do_r1_reg, do_pl_reg),
         )
@@ -76,7 +76,12 @@ class TrainingStep:
         )
 
         mean_disc_losses = (mean_reg_d_loss, mean_d_loss, mean_r1_penalty)
-        return mean_gen_losses, mean_disc_losses
+
+        mean_ocr_loss = cfg.strategy.reduce(
+            tf.distribute.ReduceOp.SUM, ocr_loss, axis=None
+        )
+
+        return mean_gen_losses, mean_disc_losses, mean_ocr_loss
 
     def _train_step(self, real_images, input_texts, labels, do_r1_reg, do_pl_reg):
         with tf.GradientTape() as d_tape, tf.GradientTape() as g_tape:

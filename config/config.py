@@ -72,7 +72,7 @@ cfg.d_opt = {
 }
 
 # Logging and Summary
-cfg.print_step = 10
+cfg.print_steps = [10, 100]
 cfg.log_step = 100
 cfg.n_samples = 3  # number of images to log
 

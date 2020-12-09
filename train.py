@@ -19,7 +19,7 @@ class Trainer(object):
         self.max_epochs = cfg.max_epochs
         self.n_samples = min(self.batch_size, cfg.n_samples)
 
-        self.print_step = cfg.print_step
+        self.print_steps = cfg.print_steps
 
         self.save_step = cfg.save_step
 
@@ -115,18 +115,10 @@ class Trainer(object):
             # setup tensorboards
             train_summary_writer = tf.summary.create_file_writer(self.log_dir)
 
-            # loss metrics
-            metric_d_loss = tf.keras.metrics.Mean("d_loss", dtype=tf.float32)
-            metric_g_loss = tf.keras.metrics.Mean("g_loss", dtype=tf.float32)
-            metric_d_gan_loss = tf.keras.metrics.Mean("d_gan_loss", dtype=tf.float32)
-            metric_g_gan_loss = tf.keras.metrics.Mean("g_gan_loss", dtype=tf.float32)
-            metric_r1_penalty = tf.keras.metrics.Mean("r1_penalty", dtype=tf.float32)
-            metric_pl_penalty = tf.keras.metrics.Mean("pl_penalty", dtype=tf.float32)
+            #setup loss trackers
+            loss_trackers = [LossTracker(print_step) for print_step in self.print_steps]
 
             # start training
-            zero = tf.constant(0.0, dtype=tf.float32)  # TODO: delete
-            t_start = time.time()
-
             for real_images, input_texts, labels in dataset:
                 step = self.g_optimizer.iterations.numpy()
 
@@ -134,27 +126,30 @@ class Trainer(object):
                 do_r1_reg = (step + 1) % self.d_opt["reg_interval"] == 0
                 do_pl_reg = (step + 1) % self.g_opt["reg_interval"] == 0
 
-                gen_losses, disc_losses = dist_train_step(
+                gen_losses, disc_losses, ocr_loss = dist_train_step(
                     real_images, input_texts, labels, do_r1_reg, do_pl_reg
                 )
                 reg_g_loss, g_loss, pl_penalty = gen_losses
                 reg_d_loss, d_loss, r1_penalty = disc_losses
 
-                # TODO: rename all the reg_g_loss, etc...
-
                 # update g_clone
                 self.g_clone.set_as_moving_average_of(self.generator)
 
-                # update metrics
-                metric_d_loss(d_loss)
-                metric_g_loss(g_loss)
-                metric_d_gan_loss(d_gan_loss)
-                metric_g_gan_loss(g_gan_loss)
-                metric_r1_penalty(r1_penalty)
-                metric_pl_penalty(pl_penalty)
-
                 # get current step
                 step = self.g_optimizer.iterations.numpy()
+
+                losses_dict = {
+                        "reg_g_loss": reg_g_loss,
+                        "g_loss": g_loss,
+                        "pl_penalty": pl_penalty,
+                        "ocr_loss": ocr_loss,
+                        "reg_d_loss": reg_d_loss,
+                        "d_loss": d_loss,
+                        "r1_penalty": r1_penalty
+                        }
+
+                for loss_tracker in loss_trackers:
+                    loss_tracker.increment_losses(losses_dict)
 
                 # TODO: export to log summary
                 # save to tensorboard
@@ -197,23 +192,10 @@ class Trainer(object):
                         tf.summary.image("images", summary_image, step=step)
 
                 # print every self.print_steps
-                if step % self.print_step == 0:
-                    elapsed = time.time() - t_start
-                    print(
-                        self.log_template.format(
-                            step,
-                            elapsed,
-                            d_loss.numpy(),
-                            g_loss.numpy(),
-                            d_gan_loss.numpy(),
-                            g_gan_loss.numpy(),
-                            r1_penalty.numpy(),
-                            pl_penalty.numpy(),
-                        )
-                    )
-
-                    # reset timer
-                    t_start = time.time()
+                for loss_tracker in loss_trackers:
+                    if step % loss_tracker.print_step == 0:
+                        loss_tracker.print_losses(step)
+                        loss_tracker.reinitialize_tracker()
 
             # save last checkpoint
             step = self.g_optimizer.iterations.numpy()
