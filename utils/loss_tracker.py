@@ -4,8 +4,9 @@ import tensorflow as tf
 
 
 class LossTracker(object):
-    def __init__(self, print_step):
+    def __init__(self, print_step, log_losses):
         self.print_step = print_step
+        self.log_losses = log_losses
         self._initiate_loss_tracking()
 
     def _initiate_loss_tracking(self):
@@ -48,21 +49,6 @@ class LossTracker(object):
 
     def reinitialize_tracker(self):
         self._initiate_loss_tracking()
-
-    def write_dict(self):
-        loss_dict = {
-            "total_loss": self.total_losses.avg,
-            "segmentation_loss": self.seg_losses.avg,
-            "recognition_loss": self.recog_losses.avg,
-            "tr_loss": self.tr_losses.avg,
-            "tcl_loss": self.tcl_losses.avg,
-            "sin_loss": self.sin_losses.avg,
-            "cos_loss": self.cos_losses.avg,
-            "radii_loss": self.radii_losses.avg,
-            "batch_time": self.timer.avg,
-        }
-
-        return loss_dict
 
 
 class AverageMeter(object):

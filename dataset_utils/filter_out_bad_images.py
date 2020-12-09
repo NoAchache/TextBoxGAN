@@ -13,7 +13,7 @@ from losses.gan_losses import GeneratorLoss
 
 def filter_out_bad_images():
     loss = GeneratorLoss()
-    ocr = AsterInferer()
+    aster_ocr = AsterInferer()
 
     with open(os.path.join(cfg.training_dir, "annotations.txt"), "r") as annotations:
         with open(
@@ -45,7 +45,7 @@ def filter_out_bad_images():
                 ocr_img = tf.expand_dims(tf.constant(ocr_img), 0)
                 ocr_padded_label = tf.expand_dims(tf.constant(ocr_padded_label), 0)
 
-                pred = ocr.run(ocr_img)
+                pred = aster_ocr(ocr_img)
                 l = loss.ocr_loss(pred, ocr_padded_label)
                 if l < 10:
                     annotations_filtered.write(data)

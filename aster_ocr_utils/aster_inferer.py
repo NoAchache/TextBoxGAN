@@ -1,21 +1,19 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-
 from config import cfg
 
-# TODO: changer ca par un model avec call
 
-
-class AsterInferer:
+class AsterInferer(tf.keras.Model):
     def __init__(self, combine_forward_and_backward=False):
+        super(AsterInferer, self).__init__()
         self.combine_forward_and_backward = combine_forward_and_backward
         tfa.register_all()
         self.model = tf.saved_model.load(cfg.aster_weights, tags="serve").signatures[
             "serving_default"
         ]
 
-    def run(self, inputs):
+    def run(self, inputs, training=False, mask=None):
         logits = []
         for i in range(len(inputs)):
             prediction = self.model(inputs[i : i + 1])

@@ -61,7 +61,7 @@ cfg.g_opt = {
     "beta1": 0.0,
     "beta2": 0.99,
     "epsilon": 1e-08,
-    "reg_interval": 8,  # TODO: check on official repo if not 16
+    "reg_interval": 8,
 }
 cfg.d_opt = {
     "learning_rate": 0.002,
@@ -72,9 +72,9 @@ cfg.d_opt = {
 }
 
 # Logging and Summary
-cfg.print_steps = [10, 100]
-cfg.log_step = 100
-cfg.n_samples = 3  # number of images to log
+cfg.summary_steps = {"print_steps": [10, 500], "log_losses": [False, True]}
+cfg.image_summary_step = 100
+cfg.num_images_per_log = 3
 
 # Resources
 cfg.num_gpus = 1

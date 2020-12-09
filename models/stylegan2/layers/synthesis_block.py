@@ -11,66 +11,6 @@ from models.stylegan2.layers.cuda.upfirdn_2d_v2 import (
 from config import cfg
 
 
-class SynthesisConstBlock(tf.keras.layers.Layer):  # TODO: delete this
-    def __init__(self, fmaps, res, **kwargs):
-        super(SynthesisConstBlock, self).__init__(**kwargs)
-        assert res == 4
-        self.res = res
-        self.fmaps = fmaps
-        self.gain = 1.0
-        self.lrmul = 1.0
-
-        # conv block
-        self.conv = ModulatedConv2D(
-            in_res=res,
-            in_fmaps=self.fmaps,
-            out_fmaps=self.fmaps,
-            kernel=3,
-            up=False,
-            demodulate=True,
-            resample_kernel=[1, 3, 3, 1],
-            gain=self.gain,
-            lrmul=self.lrmul,
-            fused_modconv=True,
-            name="conv",
-        )
-        self.apply_noise = Noise(name="noise")
-        self.apply_bias_act = BiasAct(lrmul=self.lrmul, act="lrelu", name="bias")
-
-    def build(self, input_shape):
-        # starting const variable
-        # tf 1.15 mean(0.0), std(1.0) default value of tf.initializers.random_normal()
-        const_init = tf.random.normal(
-            shape=(1, self.fmaps, self.res, self.res), mean=0.0, stddev=1.0
-        )
-        self.const = tf.Variable(const_init, name="const", trainable=True)
-
-    def call(self, inputs, training=None, mask=None):
-        w0 = inputs
-        batch_size = tf.shape(w0)[0]
-
-        # const block
-        x = tf.tile(self.const, [batch_size, 1, 1, 1])
-
-        # conv block
-        x = self.conv([x, w0])
-        x = self.apply_noise(x)
-        x = self.apply_bias_act(x)
-        return x
-
-    def get_config(self):
-        config = super(SynthesisConstBlock, self).get_config()
-        config.update(
-            {
-                "res": self.res,
-                "fmaps": self.fmaps,
-                "gain": self.gain,
-                "lrmul": self.lrmul,
-            }
-        )
-        return config
-
-
 class SynthesisBlock(tf.keras.layers.Layer):
     def __init__(
         self,
