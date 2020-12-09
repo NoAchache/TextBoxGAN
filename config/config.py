@@ -86,13 +86,15 @@ cfg.batch_size = cfg.batch_size_per_gpu * cfg.strategy.num_replicas_in_sync
 
 # Aster (OCR)
 cfg.aster_weights = osp.join(WORKING_DIR, "aster_weights")
-cfg.aster_img_dims = (256, 64)
+cfg.aster_img_dims = (64, 256)
 
 # Others
 cfg.shuffle_seed = 4444
 cfg.max_epochs = 100000
 cfg.save_step = 500
-cfg.char_tokenizer = CharTokenizer()  #TODO check not instantiated every call with print
+cfg.char_tokenizer = (
+    CharTokenizer()
+)  # TODO check not instantiated every call with print
 
 
 def print_config(config):

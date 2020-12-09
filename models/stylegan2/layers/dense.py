@@ -13,10 +13,12 @@ class Dense(tf.keras.layers.Layer):
     def build(self, input_shape):
         fan_in = tf.reduce_prod(input_shape[1:])
         weight_shape = [fan_in, self.fmaps]
-        init_std, self.runtime_coef = compute_runtime_coef(weight_shape, self.gain, self.lrmul)
+        init_std, self.runtime_coef = compute_runtime_coef(
+            weight_shape, self.gain, self.lrmul
+        )
 
         w_init = tf.random.normal(shape=weight_shape, mean=0.0, stddev=init_std)
-        self.w = tf.Variable(w_init, name='w', trainable=True)
+        self.w = tf.Variable(w_init, name="w", trainable=True)
 
     def call(self, inputs, training=None, mask=None):
         weight = self.runtime_coef * self.w
@@ -28,10 +30,12 @@ class Dense(tf.keras.layers.Layer):
 
     def get_config(self):
         config = super(Dense, self).get_config()
-        config.update({
-            'fmaps': self.fmaps,
-            'gain': self.gain,
-            'lrmul': self.lrmul,
-            'runtime_coef': self.runtime_coef,
-        })
+        config.update(
+            {
+                "fmaps": self.fmaps,
+                "gain": self.gain,
+                "lrmul": self.lrmul,
+                "runtime_coef": self.runtime_coef,
+            }
+        )
         return config

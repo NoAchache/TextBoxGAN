@@ -34,13 +34,13 @@ class WordEncoder(tf.keras.Model):
 
     def call(self, inputs, training=None, mask=None):
 
-        word_code, style = inputs
+        input_texts, style = inputs
         chars_encoded = self.char_encoder(
-            word_code
+            input_texts
         )  # (bs * max_chars, self.encoding_dense_dim)
 
         word_encoded = self.char_expander([chars_encoded, style])
-        # (bs, cfg.expand_char_feat_maps[-1], 1,cfg.char_width)
+        # (bs, cfg.expand_char_feat_maps[-1], 1,cfg.image_width)
 
         return word_encoded
 
@@ -52,20 +52,31 @@ class CharEncoder(tf.keras.Model):
         self.dense_dim = dense_dim
         self.dropout_rate = dropout_rate
 
-        embedding_in_dim= len(cfg.main_tokens.word_index) -1
-        self.char_embedding = Embedding(
-                embedding_in_dim, cfg.embedding_out_dim, input_length=cfg.max_chars
-        )
+        self.embedding_in_dim = len(cfg.char_tokenizer.main.word_index)
+        self.embedding_out_dim = cfg.embedding_out_dim
 
         self.dropout = Dropout(self.dropout_rate)
         self.bilstm = Bidirectional(LSTM(128, return_sequences=True))
         self.fc = Dense(self.dense_dim)
         self.relu = ReLU()
 
-    def call(self, inputs, training=None, mask=None):
-        embeddings = self.dropout(
-            self.char_embedding(inputs)  # (bs, max_chars, embedding_dim)
+    def build(self, input_shape):
+        weight_shape = [self.embedding_in_dim - 1, self.embedding_out_dim]
+        w_init = tf.random.normal(shape=weight_shape, mean=0.0, stddev=1.0)
+        self.w_embedding = tf.Variable(w_init, name="w_embedding", trainable=True)
+
+        # embedding for the padding of labels
+        w0_embedding = tf.zeros([1, self.embedding_out_dim])
+        self.w0_embedding = tf.Variable(
+            w0_embedding, name="w0_embedding", trainable=False
         )
+
+    def call(self, inputs, training=None, mask=None):
+        w_embedding = tf.concat([self.w0_embedding, self.w_embedding], axis=0)
+        embeddings = tf.nn.embedding_lookup(
+            w_embedding, inputs
+        )  # (bs, max_chars, embedding_dim)
+        embeddings = self.dropout(embeddings)
         x = self.bilstm(embeddings)  # (bs, max_chars, 128*2)
         x = tf.reshape(x, [cfg.batch_size * cfg.max_chars, 128 * 2])
         x = self.relu(self.fc(x))  # (bs * max_chars, self.dense_dim)

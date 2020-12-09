@@ -27,9 +27,9 @@ class Generator(tf.keras.Model):
         training=None,
         mask=None,
     ):
-        word_code, z_latent = inputs  # ((bs, max_chars), (bs , z_dim))
+        input_texts, z_latent = inputs  # ((bs, max_chars), (bs , z_dim))
         style = self.latent_encoder(z_latent)  # (bs, self.n_style, w_dim)
-        word_encoded = self.word_encoder([word_code, style[: self.n_style_w_e]])
+        word_encoded = self.word_encoder([input_texts, style[: self.n_style_w_e]])
 
         image_out = self.synthesis([word_encoded, style[-self.n_style_s :]])
 

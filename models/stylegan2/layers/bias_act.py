@@ -7,10 +7,10 @@ import tensorflow as tf
 class BiasAct(tf.keras.layers.Layer):
     def __init__(self, lrmul, act, **kwargs):
         super(BiasAct, self).__init__(**kwargs)
-        assert act in ['linear', 'lrelu']
+        assert act in ["linear", "lrelu"]
         self.lrmul = lrmul
 
-        if act == 'linear':
+        if act == "linear":
             self.act = tf.keras.layers.Lambda(lambda x: tf.identity(x))
             self.gain = 1.0
         else:
@@ -20,7 +20,7 @@ class BiasAct(tf.keras.layers.Layer):
     def build(self, input_shape):
         self.len2 = True if len(input_shape) == 2 else False
         b_init = tf.zeros(shape=(input_shape[1],), dtype=tf.dtypes.float32)
-        self.b = tf.Variable(b_init, name='b', trainable=True)
+        self.b = tf.Variable(b_init, name="b", trainable=True)
 
     def call(self, inputs, training=None, mask=None):
         b = self.lrmul * self.b
@@ -35,11 +35,9 @@ class BiasAct(tf.keras.layers.Layer):
 
     def get_config(self):
         config = super(BiasAct, self).get_config()
-        config.update({
-            'lrmul': self.lrmul,
-            'gain': self.gain,
-            'len2': self.len2,
-        })
+        config.update(
+            {"lrmul": self.lrmul, "gain": self.gain, "len2": self.len2,}
+        )
         return config
 
 
