@@ -3,7 +3,6 @@ import tensorflow as tf
 from config import cfg
 from losses.gan_losses import GeneratorLoss, DiscriminatorLoss
 from losses.ocr_loss import SoftmaxCrossEntropyLoss
-from aster_ocr_utils.aster_inferer import AsterInferer
 
 
 class TrainingStep:
@@ -11,6 +10,7 @@ class TrainingStep:
         self,
         generator,
         discriminator,
+            aster_ocr,
         g_optimizer,
         d_optimizer,
         g_reg_interval,
@@ -20,6 +20,7 @@ class TrainingStep:
     ):
         self.generator = generator
         self.discriminator = discriminator
+        self.aster = aster_ocr
         self.g_optimizer = g_optimizer
         self.d_optimizer = d_optimizer
         self.g_reg_interval = g_reg_interval
@@ -36,12 +37,12 @@ class TrainingStep:
         self.pl_noise_scaler = tf.math.rsqrt(
             float(cfg.im_width) * float(cfg.char_height)
         )
-        self.aster = AsterInferer()
 
         self.generator_loss = GeneratorLoss()
         self.discriminator_loss = DiscriminatorLoss()
         self.softmax_cross_entropy = SoftmaxCrossEntropyLoss()
 
+    @tf.function
     def dist_train_step(self, real_images, input_texts, labels, do_r1_reg, do_pl_reg):
         gen_losses, disc_losses, ocr_loss = cfg.strategy.experimental_run_v2(
             fn=self._train_step,
@@ -207,7 +208,7 @@ class TrainingStep:
         # Aster ocr works better with resized images rather than padded images.
         tf.map_fn(fn= self._resize_image, elems=(fake_images, labels), dtype=tf.float32)
 
-        logits = self.aster.run(fake_images)
+        logits = self.aster(fake_images)
         return self.softmax_cross_entropy(logits, labels)
 
     def _resize_image(self, inputs):

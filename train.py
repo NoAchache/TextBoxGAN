@@ -1,12 +1,12 @@
-import time
 import tensorflow as tf
 
 from utils.tf_utils import allow_memory_growth
 from training_step import TrainingStep
-from utils import LogSummary, LossTracker
+from utils import TensorboardWriter, LossTracker
 from config import cfg
 from dataset_utils.data_loader import load_dataset
 from models.model_loader import ModelLoader
+from aster_ocr_utils.aster_inferer import AsterInferer
 
 
 class Trainer(object):
@@ -19,13 +19,14 @@ class Trainer(object):
         self.max_epochs = cfg.max_epochs
         self.n_samples = min(self.batch_size, cfg.n_samples)
 
-        self.print_steps = cfg.print_steps
+        self.summary_steps = cfg.summary_steps
+        self.image_summary_step = cfg.image_summary_step
 
         self.save_step = cfg.save_step
 
         self.log_step = cfg.log_step
         self.log_dir = cfg.log_dir
-        self.log_summary = LogSummary()
+        self.tensorboard_writer = TensorboardWriter(self.log_dir)
 
         # set optimizer params
         self.g_opt = self.update_optimizer_params(cfg.g_opt)
@@ -60,9 +61,12 @@ class Trainer(object):
             epsilon=self.g_opt["epsilon"],
         )
 
+        self.aster_ocr = AsterInferer()
+
         self.training_step = TrainingStep(
             self.generator,
             self.discriminator,
+                self.aster_ocr,
             self.g_optimizer,
             self.d_optimizer,
             self.g_opt["reg_interval"],
@@ -70,10 +74,7 @@ class Trainer(object):
             self.batch_size,
             self.pl_mean,
         )
-        # TODO:add loss tracking
-        # TODO:add tf logging (image with label as name)
 
-        # TODO: what is zis?
         self.manager = self.model_loader.load_checkpoint(
             ckpt_kwargs={
                 "d_optimizer": self.d_optimizer,
@@ -105,18 +106,12 @@ class Trainer(object):
             )
             dataset = self.strategy.experimental_distribute_dataset(dataset)
 
-            # wrap with tf.function
-            dist_train_step = tf.function(self.training_step.dist_train_step)
-            dist_gen_samples = tf.function(self.log_summary.dist_gen_samples)
-
             # start actual training
             print("Start Training")
 
-            # setup tensorboards
-            train_summary_writer = tf.summary.create_file_writer(self.log_dir)
-
             #setup loss trackers
-            loss_trackers = [LossTracker(print_step) for print_step in self.print_steps]
+
+            loss_trackers = [LossTracker(print_step, log_losses) for print_step, log_losses in zip(self.summary_steps["print_steps"], self.summary_steps["log_losses"])]
 
             # start training
             for real_images, input_texts, labels in dataset:
@@ -126,7 +121,7 @@ class Trainer(object):
                 do_r1_reg = (step + 1) % self.d_opt["reg_interval"] == 0
                 do_pl_reg = (step + 1) % self.g_opt["reg_interval"] == 0
 
-                gen_losses, disc_losses, ocr_loss = dist_train_step(
+                gen_losses, disc_losses, ocr_loss = self.training_step.dist_train_step(
                     real_images, input_texts, labels, do_r1_reg, do_pl_reg
                 )
                 reg_g_loss, g_loss, pl_penalty = gen_losses
@@ -151,66 +146,26 @@ class Trainer(object):
                 for loss_tracker in loss_trackers:
                     loss_tracker.increment_losses(losses_dict)
 
-                # TODO: export to log summary
-                # save to tensorboard
-                with train_summary_writer.as_default():
-                    tf.summary.scalar("d_loss", metric_d_loss.result(), step=step)
-                    tf.summary.scalar("g_loss", metric_g_loss.result(), step=step)
-                    tf.summary.scalar(
-                        "d_gan_loss", metric_d_gan_loss.result(), step=step
-                    )
-                    tf.summary.scalar(
-                        "g_gan_loss", metric_g_gan_loss.result(), step=step
-                    )
-                    tf.summary.scalar(
-                        "r1_penalty", metric_r1_penalty.result(), step=step
-                    )
-                    tf.summary.scalar(
-                        "pl_penalty", metric_pl_penalty.result(), step=step
-                    )
-
                 # save every self.save_step
                 if step % self.save_step == 0:
                     self.manager.save(checkpoint_number=step)
 
                 # save every self.image_summary_step
                 if step % self.image_summary_step == 0:
-                    # add summary image
-                    test_z = tf.random.normal(
-                        shape=(self.n_samples, self.g_params["z_dim"]),
-                        dtype=tf.dtypes.float32,
-                    )
-
-                    summary_image = dist_gen_samples(test_z, self.g_clone)
-
-                    # convert to tensor image
-                    summary_image = self.convert_per_replica_image(
-                        summary_image, self.strategy
-                    )
-
-                    with train_summary_writer.as_default():
-                        tf.summary.image("images", summary_image, step=step)
+                    self.tensorboard_writer.log_images(input_texts, self.g_clone, self.aster_ocr, step)
 
                 # print every self.print_steps
                 for loss_tracker in loss_trackers:
                     if step % loss_tracker.print_step == 0:
                         loss_tracker.print_losses(step)
+                        if loss_tracker.log_losses:
+                            self.tensorboard_writer.log_scalars(loss_tracker.losses, step)
                         loss_tracker.reinitialize_tracker()
 
             # save last checkpoint
             step = self.g_optimizer.iterations.numpy()
             self.manager.save(checkpoint_number=step)
             return
-
-    @staticmethod
-    def convert_per_replica_image(nchw_per_replica_images, strategy):
-        as_tensor = tf.concat(
-            strategy.experimental_local_results(nchw_per_replica_images), axis=0
-        )
-        as_tensor = tf.transpose(as_tensor, perm=[0, 2, 3, 1])
-        as_tensor = (tf.clip_by_value(as_tensor, -1.0, 1.0) + 1.0) * 127.5
-        as_tensor = tf.cast(as_tensor, tf.uint8)
-        return as_tensor
 
 
 if __name__ == "__main__":

@@ -12,15 +12,6 @@ ASTER_CHAR_VECTOR = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW
 # Note that '-' is the blank character of the ctc loss, which avoids repeating letters incorrectly.
 NUM_CLASSES = len(MAIN_CHAR_VECTOR)  # TODO: delete
 
-# TODO: what is char is out of bound?
-def encode_label(label):
-    return np.array([MAIN_CHAR_VECTOR.index(x) for x in label])
-
-
-# TODO: if Aster: i = i-2
-def decode_label(encoded_text):
-    return "".join([MAIN_CHAR_VECTOR[i] for i in encoded_text])
-
 
 class CharTokenizer:
     def __init__(self):
