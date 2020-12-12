@@ -117,7 +117,7 @@ class Synthesis(tf.keras.layers.Layer):
         self.initial_torgb = ToRGB(
             in_ch=self.feat_maps[0],
             h_res=self.h_resolutions[0],
-            name="{:d}x{:d}/ToRGB".format(self.h_res[0], self.width),
+            name="{:d}x{:d}/ToRGB".format(self.h_resolutions[0], self.width),
         )
 
         # stack generator block with lerp block
@@ -133,7 +133,7 @@ class Synthesis(tf.keras.layers.Layer):
                     out_h_res=h_res,
                     out_w_res=self.width,
                     expand_direction="height",
-                    kernel_shape=(3, 3),
+                    kernel_shape=[3, 3],
                     name="{:d}x{:d}/block".format(h_res, self.width),
                 )
             )

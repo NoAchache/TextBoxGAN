@@ -11,13 +11,13 @@ class LatentEncoder(tf.keras.Model):
         super(LatentEncoder, self).__init__(**kwargs)
 
         self.z_dim = cfg.z_dim
-        self.w_dim = cfg.w_dim
+        self.style_dim = cfg.style_dim
         self.n_mapping = cfg.n_mapping
         self.w_ema_decay = 0.995
         self.style_mixing_prob = 0.9
         self.n_broadcast = n_broadcast
 
-        self.g_mapping = Mapping(self.w_dim, self.n_mapping, name="g_mapping")
+        self.g_mapping = Mapping(self.style_dim, self.n_mapping, name="g_mapping")
         self.mixing_layer_indices = tf.range(self.n_broadcast, dtype=tf.int32)[
             tf.newaxis, :, tf.newaxis
         ]
@@ -29,7 +29,7 @@ class LatentEncoder(tf.keras.Model):
     def build(self, input_shape):
         # w_avg
         self.w_avg = tf.Variable(
-            tf.zeros(shape=[self.w_dim], dtype=tf.dtypes.float32),
+            tf.zeros(shape=[self.style_dim], dtype=tf.dtypes.float32),
             name="w_avg",
             trainable=False,
             synchronization=tf.VariableSynchronization.ON_READ,

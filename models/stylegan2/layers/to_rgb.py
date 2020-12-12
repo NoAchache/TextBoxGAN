@@ -11,8 +11,8 @@ class ToRGB(tf.keras.layers.Layer):
         self.h_res = h_res
         self.conv = ModulatedConv2D(
             in_fmaps=self.in_ch,
-            out_fmaps=self.fmaps,
-            kernel_shape=(1, 1),
+            out_fmaps=3,
+            kernel_shape=[1, 1],
             up=False,
             demodulate=False,
             resample_kernel=None,

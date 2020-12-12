@@ -5,9 +5,9 @@ from models.stylegan2.layers.bias_act import BiasAct
 
 
 class Mapping(tf.keras.layers.Layer):
-    def __init__(self, w_dim, n_mapping, name, **kwargs):
+    def __init__(self, style_dim, n_mapping, name, **kwargs):
         super(Mapping, self).__init__(name=name, **kwargs)
-        self.w_dim = w_dim
+        self.style_dim = style_dim
         self.n_mapping = n_mapping
         self.gain = 1.0
         self.lrmul = 0.01
@@ -22,7 +22,7 @@ class Mapping(tf.keras.layers.Layer):
         for ii in range(self.n_mapping):
             self.dense_layers.append(
                 Dense(
-                    w_dim,
+                    self.style_dim,
                     gain=self.gain,
                     lrmul=self.lrmul,
                     name="dense_{:d}".format(ii),
@@ -48,7 +48,7 @@ class Mapping(tf.keras.layers.Layer):
         config = super(Mapping, self).get_config()
         config.update(
             {
-                "w_dim": self.w_dim,
+                "style_dim": self.style_dim,
                 "n_mapping": self.n_mapping,
                 "gain": self.gain,
                 "lrmul": self.lrmul,

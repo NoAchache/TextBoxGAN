@@ -19,10 +19,11 @@ class ModelLoader:
     def load_generator(self, is_g_clone=False, ckpt_dir=None):
 
         test_latent = tf.ones((1, cfg.z_dim), dtype=tf.float32)
+        test_input_text = tf.ones((1,cfg.max_chars), dtype=tf.int32)
 
         # build generator model
         generator = Generator()
-        _ = generator(test_latent)
+        _ = generator((test_input_text, test_latent))
 
         if ckpt_dir is not None:
             ckpt_kwargs = (
@@ -39,8 +40,8 @@ class ModelLoader:
 
     def _load_discriminator(self):
 
-        res = cfg.discrim_resolutions[-1]
-        test_images = tf.ones((1, 3, res, res), dtype=tf.float32)
+        res = cfg.discrim_resolutions[0]
+        test_images = tf.ones((1, 3, res[0], res[1]), dtype=tf.float32)
 
         # build discriminator model
         discriminator = Discriminator()
