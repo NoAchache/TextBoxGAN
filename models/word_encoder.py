@@ -23,11 +23,11 @@ class WordEncoder(tf.keras.Model):
         self.char_encoder = CharEncoder(dense_dim=self.encoding_dense_dim)
 
         assert cfg.char_width % 4 == 0
-        self.encoded_char_width = cfg.char_width / 4
+        self.encoded_char_width = int(cfg.char_width / 4)
 
         self.char_expander = CharExpander(
             encoded_char_width=self.encoded_char_width,
-            init_channels=self.encoding_dense_dim / self.encoded_char_width,
+            init_channels=int(self.encoding_dense_dim / self.encoded_char_width),
         )
 
         self.fc = Sequential([Dense(512), BatchNormalization(), ReLU()])
@@ -94,7 +94,7 @@ class CharExpander(tf.keras.Model):
         self.feat_maps = cfg.expand_char_feat_maps
 
         self.synth_blocks = list()
-        self.feat_maps = [self.channels] + self.feat_maps
+        self.feat_maps = [self.init_channels] + self.feat_maps
 
         for out_w, in_maps, out_maps in zip(
             self.width_resolutions, self.feat_maps[:-1], self.feat_maps[1:]
@@ -113,9 +113,10 @@ class CharExpander(tf.keras.Model):
 
     def call(self, inputs, training=None, mask=None):
         x, style = inputs
+        style = tf.repeat(style, repeats=cfg.max_chars, axis=0)
 
         x = tf.reshape(
-            inputs, [cfg.batch_size * cfg.max_chars, self.init_channels, 1, self.width],
+            x, [cfg.batch_size * cfg.max_chars, self.init_channels, 1, self.width],
         )
 
         for idx, block in enumerate(self.synth_blocks):

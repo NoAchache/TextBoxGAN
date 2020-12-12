@@ -1,6 +1,5 @@
 import tensorflow as tf
 
-
 def allow_memory_growth():
     gpus = tf.config.experimental.list_physical_devices("GPU")
     if gpus:

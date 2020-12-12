@@ -7,6 +7,8 @@ class TensorboardWriter:
         self.num_images_per_log = cfg.num_images_per_log
         self.z_dim = cfg.z_dim
         self.strategy = cfg.strategy
+        self.num_images_per_log = min(cfg.batch_size, cfg.num_images_per_log)
+
 
     def log_scalars(self, loss_dict: dict, step):
         with self.train_summary_writer.as_default():

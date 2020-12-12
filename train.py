@@ -1,30 +1,33 @@
+ALLOW_MEMORY_GROWTH = True
+
+if ALLOW_MEMORY_GROWTH:
+    # this needs to be instantiated before any file using tf
+    from allow_memory_growth import allow_memory_growth
+    allow_memory_growth()
+
+
 import tensorflow as tf
 
-from utils.tf_utils import allow_memory_growth
+
+from config import cfg
 from training_step import TrainingStep
 from utils import TensorboardWriter, LossTracker
-from config import cfg
 from dataset_utils.data_loader import load_dataset
 from models.model_loader import ModelLoader
 from aster_ocr_utils.aster_inferer import AsterInferer
 
-
 class Trainer(object):
     def __init__(self):
-        if cfg.allow_memory_growth:
-            allow_memory_growth()
 
         self.batch_size = cfg.batch_size
         self.strategy = cfg.strategy
         self.max_epochs = cfg.max_epochs
-        self.n_samples = min(self.batch_size, cfg.n_samples)
 
         self.summary_steps = cfg.summary_steps
         self.image_summary_step = cfg.image_summary_step
 
         self.save_step = cfg.save_step
 
-        self.log_step = cfg.log_step
         self.log_dir = cfg.log_dir
         self.tensorboard_writer = TensorboardWriter(self.log_dir)
 
@@ -167,7 +170,21 @@ class Trainer(object):
             self.manager.save(checkpoint_number=step)
             return
 
+def allow_memory_growth():
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices("GPU")
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+
 
 if __name__ == "__main__":
+
     trainer = Trainer()
     trainer.train()
