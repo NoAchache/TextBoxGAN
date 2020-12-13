@@ -1,12 +1,9 @@
 import tensorflow as tf
-from tensorflow.keras import Sequential
 from tensorflow.keras.layers import (
-    Embedding,
     LSTM,
     Dense,
     Dropout,
     Bidirectional,
-    BatchNormalization,
     ReLU,
 )
 
@@ -30,16 +27,15 @@ class WordEncoder(tf.keras.Model):
             init_channels=int(self.encoding_dense_dim / self.encoded_char_width),
         )
 
-        self.fc = Sequential([Dense(512), BatchNormalization(), ReLU()])
 
     def call(self, inputs, training=None, mask=None):
 
         input_texts, style = inputs
         chars_encoded = self.char_encoder(
-            input_texts
+            input_texts, training=training
         )  # (bs * max_chars, self.encoding_dense_dim)
 
-        word_encoded = self.char_expander([chars_encoded, style])
+        word_encoded = self.char_expander([chars_encoded, style], training=training)
         # (bs, cfg.expand_char_feat_maps[-1], 1,cfg.image_width)
 
         return word_encoded
@@ -82,7 +78,6 @@ class CharEncoder(tf.keras.Model):
         x = self.relu(self.fc(x))  # (bs * max_chars, self.dense_dim)
 
         return x
-
 
 class CharExpander(tf.keras.Model):
     def __init__(self, encoded_char_width, init_channels, name="char_expander"):

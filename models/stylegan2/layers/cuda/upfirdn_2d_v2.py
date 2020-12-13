@@ -50,9 +50,9 @@ def compute_paddings(resample_kernel, up, down, is_conv, convW=3, factor=2, gain
     return k, pad0, pad1
 
 
-def upsample_2d(x, res_h, res_w, pad0, pad1, k, factor=2):
+def upsample_height_2d(x, res_h, res_w, pad0, pad1, k, factor=2):
     assert isinstance(factor, int) and factor >= 1
-    return _simple_upfirdn_2d(x, res_h, res_w, k, up=factor, pad0=pad0, pad1=pad1)
+    return _simple_upfirdn_2d(x, res_h, res_w, k, up_x=1, up_y=factor, pad0=pad0, pad1=pad1)
 
 
 def downsample_2d(x, x_res, pad0, pad1, k, factor=2):
@@ -70,10 +70,16 @@ def upsample_conv_2d(x, w_res, h_res, w, pad0, pad1, k, w_factor, h_factor):
     inC = tf.shape(w)[2]
     outC = tf.shape(w)[3]
 
-    # Determine data dimensions.
-    stride = [1, 1, 2, 2]
-    h_size = (h_res - 1) * h_factor + convW if h_factor > 1 else h_res + 1
-    w_size = (w_res - 1) * w_factor + convW if w_factor > 1 else w_res + 1
+    if (convH, convW) == (1, 3):
+        stride = [1, 1, 2, 2]
+        h_size = h_res + 1
+        w_size = (w_res - 1) * w_factor + convW
+
+    else: # (convH, convW) == (3, 3)
+        stride = [1, 1, h_factor, w_factor]
+        h_size = h_res * h_factor + convW - 1 if h_factor > 1 else h_res + convH - 1
+        w_size = w_res * w_factor + convW - 1 if w_factor > 1 else w_res + convW - 1
+        pad1 = 0
 
     output_shape = [
         tf.shape(x)[0],
@@ -97,6 +103,7 @@ def upsample_conv_2d(x, w_res, h_res, w, pad0, pad1, k, w_factor, h_factor):
         padding="VALID",
         data_format="NCHW",
     )
+
     new_x_res_h = output_shape[2]
     new_x_res_w = output_shape[3]
 
@@ -112,15 +119,15 @@ def conv_downsample_2d(x, w_res, h_res, w, pad0, pad1, k, reduce_height):
     return tf.nn.conv2d(x, w, strides=s, padding="VALID", data_format="NCHW")
 
 
-def _simple_upfirdn_2d(x, x_res_h, x_res_w, k, up=1, down=1, pad0=0, pad1=0):
+def _simple_upfirdn_2d(x, x_res_h, x_res_w, k, up_x=1, up_y=1, down=1, pad0=0, pad1=0):
     assert x.shape.rank == 4
     y = x
     y = tf.reshape(y, [-1, x_res_h, x_res_w, 1])
     y = upfirdn_2d_cuda(
         y,
         k,
-        upx=up,
-        upy=up,
+        upx=up_x,
+        upy=up_y,
         downx=down,
         downy=down,
         padx0=pad0,

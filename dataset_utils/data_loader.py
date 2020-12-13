@@ -51,13 +51,15 @@ def data_generator(shuffle: bool) -> (np.ndarray, np.ndarray, np.ndarray):
 
             padded_img = np.transpose(padded_img, (2, 0, 1))  # H,W,C to C,H,W
             main_encoded_label = cfg.char_tokenizer.main.texts_to_sequences([label])
+
+            # First element is 1 so remove 1 to each element to match embedding shape
             main_padded_label = (
                 pad_sequences(
                     main_encoded_label, maxlen=cfg.max_chars, value=1, padding="post"
                 )[0]
-                - 1.0
+                - 1
             )
-            # TODO:ensure that works and explain why with comment
+
             ocr_encoded_label = cfg.char_tokenizer.aster.texts_to_sequences([label])
             ocr_padded_label = pad_sequences(
                 ocr_encoded_label, maxlen=cfg.max_chars, value=1, padding="post"

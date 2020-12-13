@@ -27,15 +27,15 @@ class LossTracker(object):
 
     def increment_losses(self, losses: dict):
         for loss_name, loss_value in losses.items():
-            self.losses[loss_name](loss_value)
+            if loss_value > 0:
+                self.losses[loss_name](loss_value)
 
         self.timer(time() - self.start_time)
         self.start_time = time()
 
     def print_losses(self, step):
-
         start_print = "Step: {}. Avg over the last {:d} steps. {:.2f} s/step. Losses:".format(
-            step, self.timer.count.numpy(), self.timer.result().numpy()
+            step, int(self.timer.count.numpy()), self.timer.result().numpy()
         )
 
         loss_print = ", ".join(

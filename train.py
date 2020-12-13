@@ -69,7 +69,7 @@ class Trainer(object):
         self.training_step = TrainingStep(
             self.generator,
             self.discriminator,
-                self.aster_ocr,
+            self.aster_ocr,
             self.g_optimizer,
             self.d_optimizer,
             self.g_opt["reg_interval"],
@@ -103,72 +103,71 @@ class Trainer(object):
         return params_copy
 
     def train(self):
-        with self.strategy.scope():
-            dataset = load_dataset(
-                shuffle=True, epochs=self.max_epochs, batch_size=self.batch_size
-            )
-            dataset = self.strategy.experimental_distribute_dataset(dataset)
+        dataset = load_dataset(
+            shuffle=True, epochs=self.max_epochs, batch_size=self.batch_size
+        )
+        dataset = self.strategy.experimental_distribute_dataset(dataset)
 
-            # start actual training
-            print("Start Training")
+        # start actual training
+        print("Start Training")
 
-            #setup loss trackers
+        #setup loss trackers
 
-            loss_trackers = [LossTracker(print_step, log_losses) for print_step, log_losses in zip(self.summary_steps["print_steps"], self.summary_steps["log_losses"])]
+        loss_trackers = [LossTracker(print_step, log_losses) for print_step, log_losses in zip(self.summary_steps["print_steps"], self.summary_steps["log_losses"])]
 
-            # start training
-            for real_images, input_texts, labels in dataset:
-                step = self.g_optimizer.iterations.numpy()
-
-                # g train step
-                do_r1_reg = (step + 1) % self.d_opt["reg_interval"] == 0
-                do_pl_reg = (step + 1) % self.g_opt["reg_interval"] == 0
-
-                gen_losses, disc_losses, ocr_loss = self.training_step.dist_train_step(
-                    real_images, input_texts, labels, do_r1_reg, do_pl_reg
-                )
-                reg_g_loss, g_loss, pl_penalty = gen_losses
-                reg_d_loss, d_loss, r1_penalty = disc_losses
-
-                # update g_clone
-                self.g_clone.set_as_moving_average_of(self.generator)
-
-                # get current step
-                step = self.g_optimizer.iterations.numpy()
-
-                losses_dict = {
-                        "reg_g_loss": reg_g_loss,
-                        "g_loss": g_loss,
-                        "pl_penalty": pl_penalty,
-                        "ocr_loss": ocr_loss,
-                        "reg_d_loss": reg_d_loss,
-                        "d_loss": d_loss,
-                        "r1_penalty": r1_penalty
-                        }
-
-                for loss_tracker in loss_trackers:
-                    loss_tracker.increment_losses(losses_dict)
-
-                # save every self.save_step
-                if step % self.save_step == 0:
-                    self.manager.save(checkpoint_number=step)
-
-                # save every self.image_summary_step
-                if step % self.image_summary_step == 0:
-                    self.tensorboard_writer.log_images(input_texts, self.g_clone, self.aster_ocr, step)
-
-                # print every self.print_steps
-                for loss_tracker in loss_trackers:
-                    if step % loss_tracker.print_step == 0:
-                        loss_tracker.print_losses(step)
-                        if loss_tracker.log_losses:
-                            self.tensorboard_writer.log_scalars(loss_tracker.losses, step)
-                        loss_tracker.reinitialize_tracker()
-
-            # save last checkpoint
+        # start training
+        for real_images, input_texts, labels in dataset:
             step = self.g_optimizer.iterations.numpy()
-            self.manager.save(checkpoint_number=step)
-            return
+
+            # g train step
+            do_r1_reg = (step + 1) % self.d_opt["reg_interval"] == 0
+            do_pl_reg = (step + 1) % self.g_opt["reg_interval"] == 0
+
+            gen_losses, disc_losses, ocr_loss = self.training_step.dist_train_step(
+                real_images, input_texts, labels, do_r1_reg, do_pl_reg
+            )
+            reg_g_loss, g_loss, pl_penalty = gen_losses
+            reg_d_loss, d_loss, r1_penalty = disc_losses
+
+            # update g_clone
+            self.g_clone.set_as_moving_average_of(self.generator)
+
+            # get current step
+            step = self.g_optimizer.iterations.numpy()
+
+            losses_dict = {
+                    "reg_g_loss": reg_g_loss,
+                    "g_loss": g_loss,
+                    "pl_penalty": pl_penalty,
+                    "ocr_loss": ocr_loss,
+                    "reg_d_loss": reg_d_loss,
+                    "d_loss": d_loss,
+                    "r1_penalty": r1_penalty
+                    }
+
+            for loss_tracker in loss_trackers:
+                loss_tracker.increment_losses(losses_dict)
+
+            # save every self.save_step
+            if step % self.save_step == 0:
+                self.manager.save(checkpoint_number=step)
+
+            # save every self.image_summary_step
+            if step % self.image_summary_step == 0:
+                self.tensorboard_writer.log_images(input_texts, self.g_clone, self.aster_ocr, step)
+
+            # print every self.print_steps
+            for loss_tracker in loss_trackers:
+                if step % loss_tracker.print_step == 0:
+                    loss_tracker.print_losses(step)
+                    if loss_tracker.log_losses:
+                        self.tensorboard_writer.log_scalars(loss_tracker.losses, step)
+                    loss_tracker.reinitialize_tracker()
+
+        # save last checkpoint
+        step = self.g_optimizer.iterations.numpy()
+        self.manager.save(checkpoint_number=step)
+        return
 
 def allow_memory_growth():
     gpus = tf.config.experimental.list_physical_devices("GPU")
@@ -185,6 +184,6 @@ def allow_memory_growth():
 
 
 if __name__ == "__main__":
-
-    trainer = Trainer()
-    trainer.train()
+    with cfg.strategy.scope():
+        trainer = Trainer()
+        trainer.train()

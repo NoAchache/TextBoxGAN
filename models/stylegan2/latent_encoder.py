@@ -36,20 +36,6 @@ class LatentEncoder(tf.keras.Model):
             aggregation=tf.VariableAggregation.ONLY_FIRST_REPLICA,
         )
 
-    @tf.function
-    def set_as_moving_average_of(self, src_net):
-        beta, beta_nontrainable = 0.99, 0.0
-
-        for cw, sw in zip(self.weights, src_net.weights):
-            assert sw.shape == cw.shape
-            # print('{} <=> {}'.format(cw.name, sw.name))
-
-            if "w_avg" in cw.name:
-                cw.assign(lerp(sw, cw, beta_nontrainable))
-            else:
-                cw.assign(lerp(sw, cw, beta))
-        return
-
     def update_moving_average_of_w(self, w_broadcasted):
         # compute average of current w
         batch_avg = tf.reduce_mean(w_broadcasted[:, 0], axis=0)

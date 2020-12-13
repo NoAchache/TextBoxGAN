@@ -24,16 +24,16 @@ class TensorboardWriter:
                 dtype=tf.dtypes.float32,
                 )
 
-        input_texts = tf.tile(input_texts[0:1], [self.num_images_per_log, 1, 1, 1])
+        input_texts = tf.tile(input_texts[0:1], [self.num_images_per_log, 1])
 
-        summary_images = self._dist_gen_samples(test_z, input_texts, generator)
+        batch_concat_imgs, height_concat_imgs = self._dist_gen_samples(test_z, input_texts, generator)
 
         # convert to tensor image
-        summary_images = self._convert_per_replica_image(
-                summary_images, self.strategy
+        summary_images, ocr_input_images = self._convert_per_replica_image(
+                batch_concat_imgs, height_concat_imgs, self.strategy, input_texts, aster_ocr
                 )
 
-        text_log = self._get_text_log(input_texts[0:1], summary_images, aster_ocr)
+        text_log = self._get_text_log(input_texts[0:1], ocr_input_images, aster_ocr)
 
         with self.train_summary_writer.as_default():
             tf.summary.image("images", summary_images, step=step)
@@ -51,24 +51,41 @@ class TensorboardWriter:
         fake_images_05 = generator((input_text, z), truncation_psi=0.5, training=False)
         fake_images_07 = generator((input_text, z), truncation_psi=0.7, training=False)
 
-        final_image = tf.concat([fake_images_05, fake_images_07], axis=2)
-        return final_image
+        height_concat_imgs = tf.concat([fake_images_05, fake_images_07], axis=2)
+        batch_concat_imgs = tf.concat([fake_images_05, fake_images_07], axis=0)
+
+        return batch_concat_imgs, height_concat_imgs
 
     @staticmethod
-    def _convert_per_replica_image(nchw_per_replica_images, strategy):
-        as_tensor = tf.concat(
-            strategy.experimental_local_results(nchw_per_replica_images), axis=0
+    def _convert_per_replica_image(batch_concat_imgs, height_concat_imgs, strategy, input_texts, aster_ocr):
+        summary_images = tf.concat(
+            strategy.experimental_local_results(height_concat_imgs), axis=0
         )
-        as_tensor = tf.transpose(as_tensor, perm=[0, 2, 3, 1])
-        as_tensor = (tf.clip_by_value(as_tensor, -1.0, 1.0) + 1.0) * 127.5
-        as_tensor = tf.cast(as_tensor, tf.uint8)
-        return as_tensor
 
-    def _get_text_log(self, input_text_code, summary_images, aster_ocr):
+        summary_images = tf.transpose(summary_images, perm=[0, 2, 3, 1])
+        summary_images = (tf.clip_by_value(summary_images, -1.0, 1.0) + 1.0) * 127.5
+        summary_images = tf.cast(summary_images, tf.uint8)
+
+        ocr_input_images = tf.concat(
+            strategy.experimental_local_results(batch_concat_imgs), axis=0
+        )
+
+        all_input_texts = tf.concat(
+            strategy.experimental_local_results(input_texts), axis=0
+        )
+
+        ocr_input_images = aster_ocr.convert_inputs(ocr_input_images, tf.tile(all_input_texts, [2,1]), blank_label=0)
+
+        return summary_images, ocr_input_images
+
+    def _get_text_log(self, input_text_code, ocr_input_images, aster_ocr):
         true_text = cfg.char_tokenizer.main.sequences_to_texts(input_text_code.numpy()+1)[0]
-        logits = aster_ocr(summary_images)
-        actual_texts = tf.nn.ctc_greedy_decoder(tf.transpose(logits, [1,0,2]), [logits.shape[1]], merge_repeated=False)[0].values
-        return true_text + " / " + " ~~ ".join(actual_texts)
+        logits = aster_ocr(ocr_input_images)
+        sequence_length = [logits.shape[1]] * tf.shape(logits)[0].numpy()
+        sequences_decoded = tf.nn.ctc_greedy_decoder(tf.transpose(logits, [1,0,2]), sequence_length, merge_repeated=False)[0][0]
+        sequences_decoded = tf.sparse.to_dense(sequences_decoded).numpy()
+        text_list = cfg.char_tokenizer.aster.sequences_to_texts(sequences_decoded)
+        return true_text + " / " + " ~~ ".join(text_list)
 
 
 
