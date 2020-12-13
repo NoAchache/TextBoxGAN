@@ -13,7 +13,7 @@ class AsterInferer(tf.keras.Model):
             "serving_default"
         ]
 
-    def run(self, inputs, training=False, mask=None):
+    def call(self, inputs, training=False, mask=None):
         logits = []
         for i in range(len(inputs)):
             prediction = self.model(inputs[i : i + 1])
@@ -86,7 +86,7 @@ class AsterInferer(tf.keras.Model):
 
         logits = logits[:, : cfg.max_chars]
 
-        padding_len = cfg.max_chars - logits.shape[1]
+        padding_len = cfg.max_chars - tf.shape(logits)[1]
 
         if padding_len > 0:
             # creates a tensor filled with 0s and 1s, to pad the logits with blank indexes. Multiply
@@ -105,3 +105,27 @@ class AsterInferer(tf.keras.Model):
             logits = tf.concat([logits, padding], axis=1)
 
         return logits
+
+    @staticmethod
+    def convert_inputs(fake_images, labels, blank_label):
+        """
+        Convert inputs from the main network (i.e generator/discriminator) input format to the ocr
+        input format.
+        """
+        fake_images = tf.transpose(fake_images, (0, 2, 3, 1))  # B,C,H,W to B,H,W,C
+
+        def resize_image(inputs):
+            fake_image, label = inputs
+
+            blank_label_idxs = tf.where(tf.equal(label, blank_label))
+
+            if len(blank_label_idxs)>0:
+                first_blank_idx = blank_label_idxs[0, 0]
+
+                # crop image parts corresponding to blank labels
+                w_crop_idx = (first_blank_idx) * cfg.char_width
+                fake_image = fake_image[:, :w_crop_idx, :]
+
+            return tf.image.resize(fake_image, [cfg.aster_img_dims[0], cfg.aster_img_dims[1]])
+        # Aster ocr works better with resized images rather than padded images.
+        return tf.map_fn(fn= resize_image, elems=(fake_images, labels), dtype=tf.float32)

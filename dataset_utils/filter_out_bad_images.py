@@ -8,11 +8,10 @@ from tqdm import tqdm
 
 from config import cfg
 from aster_ocr_utils.aster_inferer import AsterInferer
-from losses.gan_losses import GeneratorLoss
+from models.losses.ocr_loss import softmax_cross_entropy_loss
 
 
 def filter_out_bad_images():
-    loss = GeneratorLoss()
     aster_ocr = AsterInferer()
 
     with open(os.path.join(cfg.training_dir, "annotations.txt"), "r") as annotations:
@@ -34,7 +33,7 @@ def filter_out_bad_images():
                 )
                 ocr_img = ocr_img.astype(np.float32) / 127.5 - 1.0
 
-                ocr_encoded_label = cfg.char_tokenizer.aster.texts_to_sequences([label])
+                ocr_encoded_label = cfg.char_tokenizer.aster_ocr.texts_to_sequences([label])
                 ocr_padded_label = pad_sequences(
                     ocr_encoded_label, maxlen=cfg.max_chars, value=1, padding="post"
                 )[0]
@@ -46,7 +45,7 @@ def filter_out_bad_images():
                 ocr_padded_label = tf.expand_dims(tf.constant(ocr_padded_label), 0)
 
                 pred = aster_ocr(ocr_img)
-                l = loss.ocr_loss(pred, ocr_padded_label)
+                l = softmax_cross_entropy_loss(pred, ocr_padded_label)
                 if l < 10:
                     annotations_filtered.write(data)
 

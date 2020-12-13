@@ -6,3 +6,5 @@ data/training_data/*
 !data/training_data/.keep
 aster_weights/*
 !aster_weights/.keep
+experiments/*
+!experiments/.keep

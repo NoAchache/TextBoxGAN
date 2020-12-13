@@ -171,21 +171,19 @@ class Discriminator(tf.keras.Model):
         )
 
         self.blocks = list()
-        prev_res_h = res0[0]
-        for res, f_m0, f_m1 in zip(
-            self.resolutions[:-1], self.feat_maps[:-1], self.feat_maps[1:]
+        for res, next_step_res, f_m0, f_m1 in zip(
+            self.resolutions[:-1], self.resolutions[1:], self.feat_maps[:-1], self.feat_maps[1:]
         ):
             self.blocks.append(
                 DiscriminatorBlock(
                     n_f0=f_m0,
                     n_f1=f_m1,
-                    reduce_height=res[0] == prev_res_h,
+                    reduce_height=res[0] != next_step_res[0],
                     in_h_res=res[0],
                     in_w_res=res[1],
                     name="{:d}x{:d}".format(res[0], res0[1]),
                 ),
             )
-            prev_res_h = res[0]
 
         # set last discriminator block
         res_final = self.resolutions[-1]

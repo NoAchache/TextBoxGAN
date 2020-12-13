@@ -5,7 +5,7 @@ from models.stylegan2.layers.bias_act import BiasAct
 from models.stylegan2.layers.noise import Noise
 from models.stylegan2.layers.to_rgb import ToRGB
 from models.stylegan2.layers.cuda.upfirdn_2d_v2 import (
-    upsample_2d,
+    upsample_height_2d,
     compute_paddings,
 )
 from config import cfg
@@ -161,7 +161,7 @@ class Synthesis(tf.keras.layers.Layer):
 
             y_h_res = block.out_h_res // 2
             x = block([x, s0, s1])
-            y = upsample_2d(y, y_h_res, self.width, self.pad0, self.pad1, self.k)
+            y = upsample_height_2d(y, y_h_res, self.width, self.pad0, self.pad1, self.k)
             y = y + torgb([x, s2])
 
         images_out = y

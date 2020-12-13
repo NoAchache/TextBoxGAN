@@ -10,7 +10,7 @@ class ModelLoader:
     def initiate_models(self):
         discriminator = self._load_discriminator()
         generator = self.load_generator(is_g_clone=False, ckpt_dir=None)
-        g_clone = self._load_generator(is_g_clone=True, ckpt_dir=None)
+        g_clone = self.load_generator(is_g_clone=True, ckpt_dir=None)
 
         # set initial g_clone weights same as generator
         g_clone.set_weights(generator.get_weights())
@@ -23,7 +23,7 @@ class ModelLoader:
 
         # build generator model
         generator = Generator()
-        _ = generator((test_input_text, test_latent))
+        generator((test_input_text, test_latent))
 
         if ckpt_dir is not None:
             ckpt_kwargs = (
