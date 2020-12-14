@@ -23,8 +23,6 @@ class ModulatedConv2D(tf.keras.layers.Layer):
         fused_modconv,
         in_h_res=None,
         in_w_res=None,
-        h_expand_factor=None,
-        w_expand_factor=None,
         **kwargs
     ):
         super(ModulatedConv2D, self).__init__(**kwargs)
@@ -37,8 +35,6 @@ class ModulatedConv2D(tf.keras.layers.Layer):
         self.fused_modconv = fused_modconv
         self.in_h_res = in_h_res
         self.in_w_res = in_w_res
-        self.h_expand_factor = h_expand_factor
-        self.w_expand_factor = w_expand_factor
         self.gain = gain
         self.lrmul = lrmul
 
@@ -96,15 +92,7 @@ class ModulatedConv2D(tf.keras.layers.Layer):
         # Convolution with optional upsampling.
         if self.up:
             x = upsample_conv_2d(
-                x,
-                self.in_w_res,
-                self.in_h_res,
-                w,
-                self.pad0,
-                self.pad1,
-                self.k,
-                self.w_expand_factor,
-                self.h_expand_factor,
+                x, self.in_w_res, self.in_h_res, w, self.pad0, self.pad1, self.k,
             )
         else:
             x = tf.nn.conv2d(
@@ -146,8 +134,6 @@ class ModulatedConv2D(tf.keras.layers.Layer):
                 "pad0": self.pad0,
                 "pad1": self.pad1,
                 "runtime_coef": self.runtime_coef,
-                "h_expand_factor": self.h_expand_factor,
-                "w_expand_factor": self.w_expand_factor,
             }
         )
         return config

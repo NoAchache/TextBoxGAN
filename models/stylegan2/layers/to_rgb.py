@@ -5,10 +5,11 @@ from models.stylegan2.layers.bias_act import BiasAct
 
 
 class ToRGB(tf.keras.layers.Layer):
-    def __init__(self, in_ch, h_res, **kwargs):
+    def __init__(self, in_ch, h_res, w_res, **kwargs):
         super(ToRGB, self).__init__(**kwargs)
         self.in_ch = in_ch
         self.h_res = h_res
+        self.w_res = w_res
         self.conv = ModulatedConv2D(
             in_fmaps=self.in_ch,
             out_fmaps=3,
@@ -33,7 +34,5 @@ class ToRGB(tf.keras.layers.Layer):
 
     def get_config(self):
         config = super(ToRGB, self).get_config()
-        config.update(
-            {"in_ch": self.in_ch, "h_res": self.h_res,}
-        )
+        config.update({"in_ch": self.in_ch, "h_res": self.h_res, "w_res": self.w_res})
         return config

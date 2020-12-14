@@ -19,11 +19,11 @@ class ModelLoader:
     def load_generator(self, is_g_clone=False, ckpt_dir=None):
 
         test_latent = tf.ones((1, cfg.z_dim), dtype=tf.float32)
-        test_input_text = tf.ones((1,cfg.max_chars), dtype=tf.int32)
+        test_input_text = tf.ones((1, cfg.max_chars), dtype=tf.int32)
 
         # build generator model
         generator = Generator()
-        generator((test_input_text, test_latent))
+        generator((test_input_text, test_latent), batch_size=1)
 
         if ckpt_dir is not None:
             ckpt_kwargs = (

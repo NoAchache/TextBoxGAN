@@ -20,7 +20,10 @@ class LossTracker(object):
             "r1_penalty",
         ]
 
-        self.losses = {loss_name: Mean(loss_name, dtype=tf.float32) for loss_name in self.loss_names}
+        self.losses = {
+            loss_name: Mean(loss_name, dtype=tf.float32)
+            for loss_name in self.loss_names
+        }
 
         self.timer = Mean("timer", dtype=tf.float32)
         self.start_time = time()
@@ -40,7 +43,9 @@ class LossTracker(object):
 
         loss_print = ", ".join(
             [
-                "- {:s}: {:.4f}".format(loss_name, self.losses[loss_name].result().numpy())
+                "- {:s}: {:.4f}".format(
+                    loss_name, self.losses[loss_name].result().numpy()
+                )
                 for loss_name in self.loss_names
             ]
         )

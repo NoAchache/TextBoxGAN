@@ -32,7 +32,7 @@ class TrainingStep:
         self.pl_weight = float(self.pl_minibatch_shrink)
         self.pl_decay = 0.01
         self.r1_gamma = 10.0
-        self.ocr_loss_weight = 1
+        self.ocr_loss_weight = 0.1
         self.z_dim = cfg.z_dim
         self.char_width = cfg.char_width
         self.pl_noise_scaler = tf.math.rsqrt(
@@ -84,7 +84,9 @@ class TrainingStep:
     def _train_step(self, real_images, input_texts, labels, do_r1_reg, do_pl_reg):
         with tf.GradientTape() as g_tape:
             with tf.GradientTape() as d_tape:
-                z = tf.random.normal(shape=[self.batch_size, self.z_dim], dtype=tf.float32)
+                z = tf.random.normal(
+                    shape=[self.batch_size, self.z_dim], dtype=tf.float32
+                )
                 fake_images = self.generator([input_texts, z], training=True)
 
                 mask = tf.tile(
@@ -98,7 +100,8 @@ class TrainingStep:
                             1,
                         ),
                         1,
-                    ), [1, fake_images.shape[1], fake_images.shape[2], 1]
+                    ),
+                    [1, fake_images.shape[1], fake_images.shape[2], 1],
                 )
 
                 fake_images = fake_images * mask
@@ -111,7 +114,7 @@ class TrainingStep:
                 )
 
             ocr_loss = self._get_ocr_loss(fake_images, labels)
-        # TODO: scale losses + add ocr_loss
+            # TODO: scale losses + add ocr_loss
             ocr_loss = self.ocr_loss_weight * ocr_loss
 
         g_gradients = g_tape.gradient(
@@ -151,7 +154,9 @@ class TrainingStep:
         g_loss = generator_loss(fake_scores)
 
         pl_penalty = (
-            self._path_length_reg(input_texts) if do_pl_reg else tf.constant(0.0, dtype=tf.float32)
+            self._path_length_reg(input_texts)
+            if do_pl_reg
+            else tf.constant(0.0, dtype=tf.float32)
         )
         reg_g_loss = g_loss + pl_penalty
 
@@ -163,12 +168,14 @@ class TrainingStep:
         )
         pl_z = tf.random.normal(shape=[pl_minibatch, self.z_dim], dtype=tf.float32)
 
-
         # Evaluate the regularization term using a smaller minibatch to conserve memory.
         with tf.GradientTape() as pl_tape:
             pl_tape.watch(pl_z)
             pl_fake_images, pl_style = self.generator(
-                    (input_texts[:pl_minibatch], pl_z), ret_style=True, training=True
+                (input_texts[:pl_minibatch], pl_z),
+                batch_size=pl_minibatch,
+                ret_style=True,
+                training=True,
             )
             pl_noise = tf.random.normal(tf.shape(pl_fake_images)) * self.pl_noise_scaler
             pl_noise_applied = tf.reduce_sum(pl_fake_images * pl_noise)
@@ -201,9 +208,8 @@ class TrainingStep:
         return real_scores, r1_penalty
 
     def _get_ocr_loss(self, fake_images, labels):
-        ocr_input_image = self.aster_ocr.convert_inputs(fake_images, labels, blank_label=1)
+        ocr_input_image = self.aster_ocr.convert_inputs(
+            fake_images, labels, blank_label=1
+        )
         logits = self.aster_ocr(ocr_input_image)
         return softmax_cross_entropy_loss(logits, labels)
-
-
-
