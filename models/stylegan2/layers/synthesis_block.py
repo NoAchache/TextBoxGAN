@@ -5,23 +5,14 @@ from models.stylegan2.layers.bias_act import BiasAct
 from models.stylegan2.layers.noise import Noise
 from models.stylegan2.layers.to_rgb import ToRGB
 from models.stylegan2.layers.cuda.upfirdn_2d_v2 import (
-    upsample_height_2d,
+    upsample_2d,
     compute_paddings,
 )
 from config import cfg
 
 
 class SynthesisBlock(tf.keras.layers.Layer):
-    def __init__(
-        self,
-        in_ch,
-        out_fmaps,
-        out_h_res,
-        out_w_res,
-        expand_direction,
-        kernel_shape,
-        **kwargs
-    ):
+    def __init__(self, in_ch, out_fmaps, out_h_res, out_w_res, kernel_shape, **kwargs):
         super(SynthesisBlock, self).__init__(**kwargs)
         self.in_ch = in_ch
         self.fmaps = out_fmaps
@@ -30,7 +21,6 @@ class SynthesisBlock(tf.keras.layers.Layer):
 
         self.out_h_res = out_h_res
         self.out_w_res = out_w_res
-        self.expand_direction = expand_direction
         self.kernel_shape = kernel_shape
 
         # conv0 up
@@ -44,14 +34,8 @@ class SynthesisBlock(tf.keras.layers.Layer):
             gain=self.gain,
             lrmul=self.lrmul,
             fused_modconv=True,
-            in_h_res=self.out_h_res // 2
-            if self.expand_direction == "height"
-            else self.out_h_res,
-            in_w_res=self.out_w_res // 2
-            if self.expand_direction == "width"
-            else self.out_w_res,
-            h_expand_factor=2 if self.expand_direction == "height" else 1,
-            w_expand_factor=2 if self.expand_direction == "width" else 1,
+            in_h_res=self.out_h_res // 2,
+            in_w_res=self.out_w_res // 2,
             name="conv_0",
         )
         self.apply_noise_0 = Noise(name="noise_0")
@@ -106,8 +90,8 @@ class SynthesisBlock(tf.keras.layers.Layer):
 class Synthesis(tf.keras.layers.Layer):
     def __init__(self, name="synthesis", **kwargs):
         super(Synthesis, self).__init__(name=name, **kwargs)
-        self.h_resolutions = cfg.expand_word_h_res
-        self.feat_maps = cfg.expand_word_feat_maps
+        self.resolutions = cfg.generator_resolutions
+        self.feat_maps = cfg.generator_feat_maps
         self.width = cfg.im_width
 
         self.k, self.pad0, self.pad1 = compute_paddings(
@@ -116,8 +100,11 @@ class Synthesis(tf.keras.layers.Layer):
 
         self.initial_torgb = ToRGB(
             in_ch=self.feat_maps[0],
-            h_res=self.h_resolutions[0],
-            name="{:d}x{:d}/ToRGB".format(self.h_resolutions[0], self.width),
+            h_res=self.resolutions[0][0],
+            w_res=self.resolutions[0][1],
+            name="{:d}x{:d}/ToRGB".format(
+                self.resolutions[0][0], self.resolutions[0][1]
+            ),
         )
 
         # stack generator block with lerp block
@@ -125,16 +112,15 @@ class Synthesis(tf.keras.layers.Layer):
         self.synth_blocks = list()
         self.torgbs = list()
 
-        for h_res, f_m in zip(self.h_resolutions[1:], self.feat_maps[1:]):
+        for (h_res, w_res), f_m in zip(self.resolutions[1:], self.feat_maps[1:]):
             self.synth_blocks.append(
                 SynthesisBlock(
                     in_ch=prev_f_m,
                     out_fmaps=f_m,
                     out_h_res=h_res,
-                    out_w_res=self.width,
-                    expand_direction="height",
+                    out_w_res=w_res,
                     kernel_shape=[3, 3],
-                    name="{:d}x{:d}/block".format(h_res, self.width),
+                    name="{:d}x{:d}/block".format(h_res, w_res),
                 )
             )
 
@@ -142,7 +128,8 @@ class Synthesis(tf.keras.layers.Layer):
                 ToRGB(
                     in_ch=f_m,
                     h_res=h_res,
-                    name="{:d}x{:d}/ToRGB".format(h_res, self.width),
+                    w_res=w_res,
+                    name="{:d}x{:d}/ToRGB".format(h_res, w_res),
                 )
             )
             prev_f_m = f_m
@@ -160,8 +147,9 @@ class Synthesis(tf.keras.layers.Layer):
             s2 = style[:, idx + 2]
 
             y_h_res = block.out_h_res // 2
+            y_w_res = block.out_w_res // 2
             x = block([x, s0, s1])
-            y = upsample_height_2d(y, y_h_res, self.width, self.pad0, self.pad1, self.k)
+            y = upsample_2d(y, y_h_res, y_w_res, self.pad0, self.pad1, self.k)
             y = y + torgb([x, s2])
 
         images_out = y

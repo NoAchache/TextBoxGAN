@@ -119,13 +119,16 @@ class AsterInferer(tf.keras.Model):
 
             blank_label_idxs = tf.where(tf.equal(label, blank_label))
 
-            if len(blank_label_idxs)>0:
+            if len(blank_label_idxs) > 0:
                 first_blank_idx = blank_label_idxs[0, 0]
 
                 # crop image parts corresponding to blank labels
                 w_crop_idx = (first_blank_idx) * cfg.char_width
                 fake_image = fake_image[:, :w_crop_idx, :]
 
-            return tf.image.resize(fake_image, [cfg.aster_img_dims[0], cfg.aster_img_dims[1]])
+            return tf.image.resize(
+                fake_image, [cfg.aster_img_dims[0], cfg.aster_img_dims[1]]
+            )
+
         # Aster ocr works better with resized images rather than padded images.
-        return tf.map_fn(fn= resize_image, elems=(fake_images, labels), dtype=tf.float32)
+        return tf.map_fn(fn=resize_image, elems=(fake_images, labels), dtype=tf.float32)

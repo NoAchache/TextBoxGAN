@@ -4,6 +4,7 @@ from models.stylegan2.utils import lerp
 from models.stylegan2.layers.synthesis_block import Synthesis
 from models.word_encoder import WordEncoder
 from models.stylegan2.latent_encoder import LatentEncoder
+from config import cfg
 
 
 class Generator(tf.keras.Model):
@@ -12,16 +13,13 @@ class Generator(tf.keras.Model):
 
         self.word_encoder = WordEncoder()
         self.synthesis = Synthesis()
-        self.n_style_w_e = 2 * len(self.word_encoder.char_expander.synth_blocks)
-        self.n_style_s = 2 * len(self.synthesis.synth_blocks) + len(
-            self.synthesis.torgbs
-        )
-        self.n_style = self.n_style_w_e + self.n_style_s
+        self.n_style = 2 * len(self.synthesis.synth_blocks) + len(self.synthesis.torgbs)
         self.latent_encoder = LatentEncoder(n_broadcast=self.n_style)
 
     def call(
         self,
         inputs,
+        batch_size=cfg.batch_size,
         ret_style=False,
         truncation_psi=1.0,
         truncation_cutoff=None,
@@ -29,10 +27,16 @@ class Generator(tf.keras.Model):
         mask=None,
     ):
         input_texts, z_latent = inputs  # ((bs, max_chars), (bs , z_dim))
-        style = self.latent_encoder(z_latent, training=training)  # (bs, self.n_style, style_dim)
-        word_encoded = self.word_encoder([input_texts, style[: self.n_style_w_e]], training=training)
 
-        image_out = self.synthesis([word_encoded, style[-self.n_style_s :]], training=training)
+        word_encoded = self.word_encoder(
+            input_texts, batch_size=batch_size, training=training,
+        )
+
+        style = self.latent_encoder(
+            z_latent, training=training
+        )  # (bs, self.n_style, style_dim)
+
+        image_out = self.synthesis([word_encoded, style], training=training)
 
         if ret_style:
             return image_out, style

@@ -33,7 +33,9 @@ def filter_out_bad_images():
                 )
                 ocr_img = ocr_img.astype(np.float32) / 127.5 - 1.0
 
-                ocr_encoded_label = cfg.char_tokenizer.aster_ocr.texts_to_sequences([label])
+                ocr_encoded_label = cfg.char_tokenizer.aster_ocr.texts_to_sequences(
+                    [label]
+                )
                 ocr_padded_label = pad_sequences(
                     ocr_encoded_label, maxlen=cfg.max_chars, value=1, padding="post"
                 )[0]

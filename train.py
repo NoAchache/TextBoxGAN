@@ -3,6 +3,7 @@ ALLOW_MEMORY_GROWTH = True
 if ALLOW_MEMORY_GROWTH:
     # this needs to be instantiated before any file using tf
     from allow_memory_growth import allow_memory_growth
+
     allow_memory_growth()
 
 
@@ -15,6 +16,7 @@ from utils import TensorboardWriter, LossTracker
 from dataset_utils.data_loader import load_dataset
 from models.model_loader import ModelLoader
 from aster_ocr_utils.aster_inferer import AsterInferer
+
 
 class Trainer(object):
     def __init__(self):
@@ -111,9 +113,14 @@ class Trainer(object):
         # start actual training
         print("Start Training")
 
-        #setup loss trackers
+        # setup loss trackers
 
-        loss_trackers = [LossTracker(print_step, log_losses) for print_step, log_losses in zip(self.summary_steps["print_steps"], self.summary_steps["log_losses"])]
+        loss_trackers = [
+            LossTracker(print_step, log_losses)
+            for print_step, log_losses in zip(
+                self.summary_steps["print_steps"], self.summary_steps["log_losses"]
+            )
+        ]
 
         # start training
         for real_images, input_texts, labels in dataset:
@@ -136,14 +143,14 @@ class Trainer(object):
             step = self.g_optimizer.iterations.numpy()
 
             losses_dict = {
-                    "reg_g_loss": reg_g_loss,
-                    "g_loss": g_loss,
-                    "pl_penalty": pl_penalty,
-                    "ocr_loss": ocr_loss,
-                    "reg_d_loss": reg_d_loss,
-                    "d_loss": d_loss,
-                    "r1_penalty": r1_penalty
-                    }
+                "reg_g_loss": reg_g_loss,
+                "g_loss": g_loss,
+                "pl_penalty": pl_penalty,
+                "ocr_loss": ocr_loss,
+                "reg_d_loss": reg_d_loss,
+                "d_loss": d_loss,
+                "r1_penalty": r1_penalty,
+            }
 
             for loss_tracker in loss_trackers:
                 loss_tracker.increment_losses(losses_dict)
@@ -154,7 +161,9 @@ class Trainer(object):
 
             # save every self.image_summary_step
             if step % self.image_summary_step == 0:
-                self.tensorboard_writer.log_images(input_texts, self.g_clone, self.aster_ocr, step)
+                self.tensorboard_writer.log_images(
+                    input_texts, self.g_clone, self.aster_ocr, step
+                )
 
             # print every self.print_steps
             for loss_tracker in loss_trackers:
@@ -168,6 +177,7 @@ class Trainer(object):
         step = self.g_optimizer.iterations.numpy()
         self.manager.save(checkpoint_number=step)
         return
+
 
 def allow_memory_growth():
     gpus = tf.config.experimental.list_physical_devices("GPU")
