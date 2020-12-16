@@ -19,7 +19,7 @@ class Generator(tf.keras.Model):
     def call(
         self,
         inputs,
-        batch_size=cfg.batch_size,
+        batch_size=cfg.batch_size_per_gpu,
         ret_style=False,
         truncation_psi=1.0,
         truncation_cutoff=None,

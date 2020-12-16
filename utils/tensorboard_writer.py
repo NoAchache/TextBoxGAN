@@ -21,11 +21,13 @@ class TensorboardWriter:
             shape=(self.num_images_per_log, self.z_dim), dtype=tf.dtypes.float32,
         )
 
+        if cfg.strategy.num_replicas_in_sync > 1:
+            input_texts = input_texts.values  # a list [x_from_dev_a, x_from_dev_b, ...]
+            input_texts = tf.concat(input_texts, axis=0)
+
         input_texts = tf.tile(input_texts[0:1], [self.num_images_per_log, 1])
 
-        batch_concat_imgs, height_concat_imgs = self._dist_gen_samples(
-            test_z, input_texts, generator
-        )
+        batch_concat_imgs, height_concat_imgs = self._gen_samples(test_z, input_texts, generator)
 
         # convert to tensor image
         summary_images, ocr_input_images = self._convert_per_replica_image(
@@ -39,11 +41,6 @@ class TensorboardWriter:
             tf.summary.text("texts", text_log, step=step)
 
     @tf.function
-    def _dist_gen_samples(self, z, input_text, generator):
-        return cfg.strategy.experimental_run_v2(
-            self._gen_samples, args=(z, input_text, generator)
-        )
-
     def _gen_samples(self, z, input_text, generator):
 
         # run networks

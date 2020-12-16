@@ -58,7 +58,7 @@ class ModelLoader:
         if expect_partial:
             ckpt.restore(manager.latest_checkpoint).expect_partial()
         else:
-            ckpt.restore(manager.latest_checkpoint).expect_partial()
+            ckpt.restore(manager.latest_checkpoint)
         if manager.latest_checkpoint:
             print(
                 "{} restored from {}".format(

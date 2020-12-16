@@ -15,7 +15,6 @@ class TrainingStep:
         d_optimizer,
         g_reg_interval,
         d_reg_interval,
-        batch_size,
         pl_mean,
     ):
         self.generator = generator
@@ -25,14 +24,15 @@ class TrainingStep:
         self.d_optimizer = d_optimizer
         self.g_reg_interval = g_reg_interval
         self.d_reg_interval = d_reg_interval
-        self.batch_size = batch_size
+        self.batch_size = cfg.batch_size
+        self.batch_size_per_gpu = cfg.batch_size_per_gpu
         self.pl_mean = pl_mean
 
         self.pl_minibatch_shrink = 2
         self.pl_weight = float(self.pl_minibatch_shrink)
         self.pl_decay = 0.01
         self.r1_gamma = 10.0
-        self.ocr_loss_weight = 0.1
+        self.ocr_loss_weight = 0.01
         self.z_dim = cfg.z_dim
         self.char_width = cfg.char_width
         self.pl_noise_scaler = tf.math.rsqrt(
@@ -85,16 +85,17 @@ class TrainingStep:
         with tf.GradientTape() as g_tape:
             with tf.GradientTape() as d_tape:
                 z = tf.random.normal(
-                    shape=[self.batch_size, self.z_dim], dtype=tf.float32
+                    shape=[self.batch_size_per_gpu, self.z_dim], dtype=tf.float32
                 )
                 fake_images = self.generator([input_texts, z], training=True)
+
 
                 mask = tf.tile(
                     tf.expand_dims(
                         tf.expand_dims(
                             tf.repeat(
                                 tf.where(input_texts == 0, 0.0, 1.0),
-                                repeats=[self.char_width],
+                                repeats=tf.tile([self.char_width],[tf.shape(input_texts)[1]]),
                                 axis=1,
                             ),
                             1,
@@ -164,7 +165,7 @@ class TrainingStep:
 
     def _path_length_reg(self, input_texts):
         pl_minibatch = tf.maximum(
-            1, tf.math.floordiv(self.batch_size, self.pl_minibatch_shrink)
+            1, tf.math.floordiv(self.batch_size_per_gpu, self.pl_minibatch_shrink)
         )
         pl_z = tf.random.normal(shape=[pl_minibatch, self.z_dim], dtype=tf.float32)
 

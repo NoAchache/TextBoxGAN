@@ -76,7 +76,6 @@ class Trainer(object):
             self.d_optimizer,
             self.g_opt["reg_interval"],
             self.d_opt["reg_interval"],
-            self.batch_size,
             self.pl_mean,
         )
 
@@ -92,7 +91,7 @@ class Trainer(object):
             model_description="Full model",
             expect_partial=False,
             ckpt_dir=cfg.ckpt_dir,
-            max_to_keep=10,
+            max_to_keep=8,
         )
 
     @staticmethod

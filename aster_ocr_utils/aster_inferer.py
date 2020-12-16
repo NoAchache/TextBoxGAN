@@ -8,7 +8,7 @@ class AsterInferer(tf.keras.Model):
     def __init__(self, combine_forward_and_backward=False):
         super(AsterInferer, self).__init__()
         self.combine_forward_and_backward = combine_forward_and_backward
-        tfa.register_all()
+        tfa.register_all(custom_kernels=False)
         self.model = tf.saved_model.load(cfg.aster_weights, tags="serve").signatures[
             "serving_default"
         ]

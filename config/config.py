@@ -98,14 +98,13 @@ cfg.d_opt = {
 cfg.summary_steps = {"print_steps": [50, 500], "log_losses": [False, True]}
 cfg.image_summary_step = 200
 cfg.num_images_per_log = 3
-cfg.save_step = 500
+cfg.save_step = 10000
 
 # Resources
-cfg.num_gpus = 1
 cfg.num_workers = 5
 cfg.strategy = tf.distribute.MirroredStrategy()
-cfg.batch_size = 2
-cfg.global_batch_size = cfg.batch_size * cfg.strategy.num_replicas_in_sync
+cfg.batch_size_per_gpu = 1
+cfg.batch_size = cfg.batch_size_per_gpu * cfg.strategy.num_replicas_in_sync
 
 # Aster (OCR)
 cfg.aster_weights = osp.join(WORKING_DIR, "aster_weights")
