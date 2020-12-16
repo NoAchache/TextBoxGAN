@@ -2,6 +2,8 @@ from time import time
 from tensorflow.keras.metrics import Mean
 import tensorflow as tf
 
+from config import cfg
+
 
 class LossTracker(object):
     def __init__(self, print_step, log_losses):
@@ -38,7 +40,7 @@ class LossTracker(object):
 
     def print_losses(self, step):
         start_print = "Step: {}. Avg over the last {:d} steps. {:.2f} s/step. Losses:".format(
-            step, int(self.timer.count.numpy()), self.timer.result().numpy()
+            step, int(self.timer.count.numpy()/cfg.strategy.num_replicas_in_sync), self.timer.result().numpy()
         )
 
         loss_print = ", ".join(

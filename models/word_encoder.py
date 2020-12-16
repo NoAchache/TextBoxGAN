@@ -51,6 +51,7 @@ class WordEncoder(tf.keras.Model):
         )  # (bs, max_chars, embedding_dim)
         embeddings = self.dropout(embeddings)
         x = self.bilstm(embeddings)  # (bs, max_chars, 128*2)
+
         x = tf.reshape(x, [batch_size * self.max_chars, 128 * 2])
 
         x = self.relu(self.fc(x))  # (bs * max_chars, self.dense_dim)
