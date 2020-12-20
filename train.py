@@ -91,7 +91,7 @@ class Trainer(object):
             model_description="Full model",
             expect_partial=False,
             ckpt_dir=cfg.ckpt_dir,
-            max_to_keep=8,
+            max_to_keep=1,
         )
 
     @staticmethod

@@ -11,13 +11,15 @@ cfg = EasyDict()
 WORKING_DIR = os.getcwd()
 cfg.experiment_dir = osp.join(WORKING_DIR, "experiments")
 
-# Infere files
-EXPERIMENT_NAME = ""  # experiment to load from
-cfg.ckpt_path = osp.join(cfg.experiment_dir, EXPERIMENT_NAME, "checkpoints")
+EXPERIMENT_NAME = "TextBoxGan_16-12-2020_00h04"  # experiment to load from
 
-# Train files
-cfg.experiment_name = f"TextBoxGan_{datetime.now().strftime('%d-%m-%Y|%Hh%M')}"
+cfg.experiment_name = (
+    f"TextBoxGan_{datetime.now().strftime('%d-%m-%Y_%Hh%M')}"
+    if EXPERIMENT_NAME == None
+    else EXPERIMENT_NAME
+)
 cfg.ckpt_dir = osp.join(cfg.experiment_dir, cfg.experiment_name, "checkpoints")
+# cfg.ckpt_dir = "/home/noe/Projects/Python/TextBoxGan_tests/gpu_expe/TextBoxGan_16-12-2020_00h04/checkpoints"
 cfg.log_dir = osp.join(cfg.experiment_dir, cfg.experiment_name, "logs")
 cfg.data_dir = osp.join(WORKING_DIR, "data")
 cfg.source_datasets = osp.join(cfg.data_dir, "source_datasets")
@@ -101,9 +103,9 @@ cfg.num_images_per_log = 3
 cfg.save_step = 10000
 
 # Resources
-cfg.num_workers = 5
+cfg.num_workers = 7
 cfg.strategy = tf.distribute.MirroredStrategy()
-cfg.batch_size_per_gpu = 1
+cfg.batch_size_per_gpu = 4
 cfg.batch_size = cfg.batch_size_per_gpu * cfg.strategy.num_replicas_in_sync
 
 # Aster (OCR)
