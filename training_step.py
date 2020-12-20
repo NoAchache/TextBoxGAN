@@ -32,7 +32,7 @@ class TrainingStep:
         self.pl_weight = float(self.pl_minibatch_shrink)
         self.pl_decay = 0.01
         self.r1_gamma = 10.0
-        self.ocr_loss_weight = 0.01
+        self.ocr_loss_weight = 0.05
         self.z_dim = cfg.z_dim
         self.char_width = cfg.char_width
         self.pl_noise_scaler = tf.math.rsqrt(
@@ -82,8 +82,8 @@ class TrainingStep:
         return mean_gen_losses, mean_disc_losses, mean_ocr_loss
 
     def _train_step(self, real_images, input_texts, labels, do_r1_reg, do_pl_reg):
-        with tf.GradientTape() as g_tape:
-            with tf.GradientTape() as d_tape:
+        with tf.GradientTape() as ocr_tape:
+            with tf.GradientTape() as d_tape, tf.GradientTape() as g_tape:
                 z = tf.random.normal(
                     shape=[self.batch_size_per_gpu, self.z_dim], dtype=tf.float32
                 )
@@ -114,12 +114,17 @@ class TrainingStep:
                     fake_scores, real_images, do_r1_reg
                 )
 
-            ocr_loss = self._get_ocr_loss(fake_images, labels)
-            # TODO: scale losses + add ocr_loss
-            ocr_loss = self.ocr_loss_weight * ocr_loss
+            ocr_loss = self.ocr_loss_weight * self._get_ocr_loss(fake_images, labels)
+
+        ocr_gradients = ocr_tape.gradient(
+            ocr_loss, self.generator.word_encoder.trainable_variables
+        )
+        self.g_optimizer.apply_gradients(
+            zip(ocr_gradients, self.generator.word_encoder.trainable_variables)
+        )
 
         g_gradients = g_tape.gradient(
-            [reg_g_loss, ocr_loss], self.generator.trainable_variables
+            reg_g_loss, self.generator.trainable_variables
         )
         self.g_optimizer.apply_gradients(
             zip(g_gradients, self.generator.trainable_variables)
@@ -135,7 +140,7 @@ class TrainingStep:
         gen_losses = (reg_g_loss, g_loss, pl_penalty)
         disc_losses = (reg_d_loss, d_loss, r1_penalty)
 
-        return gen_losses, disc_losses, ocr_loss
+        return gen_losses, disc_losses, ocr_loss/self.ocr_loss_weight
 
     def _get_disc_losses(self, fake_scores, real_images, do_r1_reg):
 

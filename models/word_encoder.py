@@ -27,7 +27,7 @@ class WordEncoder(tf.keras.Model):
         self.relu = ReLU()
 
         self.out_char_height = cfg.generator_resolutions[0][0]
-        self.out_char_width = cfg.generator_resolutions[0][1]
+        self.out_width = cfg.generator_resolutions[0][1]
         self.out_channels = cfg.generator_feat_maps[0]
 
     def build(self, input_shape):
@@ -58,7 +58,7 @@ class WordEncoder(tf.keras.Model):
 
         x = tf.reshape(
             x,
-            [batch_size, self.out_channels, self.out_char_height, self.out_char_width],
+            [batch_size, self.out_channels, self.out_char_height, self.out_width],
         )
 
         return x
