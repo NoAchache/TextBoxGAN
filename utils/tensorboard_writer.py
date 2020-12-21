@@ -1,24 +1,33 @@
 import tensorflow as tf
+
 from config import cfg
+from models.stylegan2.generator import Generator
+from aster_ocr_utils.aster_inferer import AsterInferer
 
 
 class TensorboardWriter:
-    def __init__(self, log_dir):
+    def __init__(self, log_dir: str):
         self.train_summary_writer = tf.summary.create_file_writer(log_dir)
         self.num_images_per_log = cfg.num_images_per_log
         self.z_dim = cfg.z_dim
         self.strategy = cfg.strategy
         self.num_images_per_log = min(cfg.batch_size, cfg.num_images_per_log)
 
-    def log_scalars(self, loss_dict: dict, step):
+    def log_scalars(self, loss_dict: dict, step: int):
         with self.train_summary_writer.as_default():
             for loss_name, metric in loss_dict.items():
                 tf.summary.scalar(loss_name, metric.result(), step=step)
 
-    def log_images(self, input_texts, generator, aster_ocr, step):
+    def log_images(
+        self,
+        input_texts: tf.int32,
+        generator: Generator,
+        aster_ocr: AsterInferer,
+        step: int,
+    ):
 
         test_z = tf.random.normal(
-            shape=(self.num_images_per_log, self.z_dim), dtype=tf.dtypes.float32,
+            shape=[self.num_images_per_log, self.z_dim], dtype=tf.dtypes.float32
         )
 
         if cfg.strategy.num_replicas_in_sync > 1:
@@ -27,7 +36,9 @@ class TensorboardWriter:
 
         input_texts = tf.tile(input_texts[0:1], [self.num_images_per_log, 1])
 
-        batch_concat_imgs, height_concat_imgs = self._gen_samples(test_z, input_texts, generator)
+        batch_concat_imgs, height_concat_imgs = self._gen_samples(
+            test_z, input_texts, generator
+        )
 
         # convert to tensor image
         summary_images, ocr_input_images = self._convert_per_replica_image(
@@ -41,7 +52,7 @@ class TensorboardWriter:
             tf.summary.text("texts", text_log, step=step)
 
     @tf.function
-    def _gen_samples(self, z, input_text, generator):
+    def _gen_samples(self, z: tf.float32, input_text: tf.int32, generator: Generator):
 
         # run networks
         fake_images_05 = generator(
@@ -64,7 +75,11 @@ class TensorboardWriter:
 
     @staticmethod
     def _convert_per_replica_image(
-        batch_concat_imgs, height_concat_imgs, strategy, input_texts, aster_ocr
+        batch_concat_imgs: tf.float32,
+        height_concat_imgs: tf.float32,
+        strategy: tf.distribute.Strategy,
+        input_texts: tf.int32,
+        aster_ocr: AsterInferer,
     ):
         summary_images = tf.concat(
             strategy.experimental_local_results(height_concat_imgs), axis=0
@@ -88,7 +103,12 @@ class TensorboardWriter:
 
         return summary_images, ocr_input_images
 
-    def _get_text_log(self, input_text_code, ocr_input_images, aster_ocr):
+    def _get_text_log(
+        self,
+        input_text_code: tf.int32,
+        ocr_input_images: tf.float32,
+        aster_ocr: AsterInferer,
+    ):
         true_text = cfg.char_tokenizer.main.sequences_to_texts(
             input_text_code.numpy() + 1
         )[0]

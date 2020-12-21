@@ -24,7 +24,7 @@ class AsterInferer(tf.keras.Model):
 
         return tf.concat(logits, axis=0)
 
-    def _postprocess_combine(self, prediction):
+    def _postprocess_combine(self, prediction: tf.float32):
 
         # retrieve logits and keep only the first cfg.max_chars time steps
         forward_logits = prediction["forward_logits"][:, : cfg.max_chars]
@@ -57,7 +57,7 @@ class AsterInferer(tf.keras.Model):
 
         return tf.concat([combined_logits, remaining_logits, padding], axis=1)
 
-    def _combine_logits(self, forward_logits, backward_logits):
+    def _combine_logits(self, forward_logits: tf.float32, backward_logits: tf.float32):
         # create masks to filter blank indexes
         forward_mask = ~tf.equal(tf.argmax(forward_logits, axis=2), 1)
         backward_mask = ~tf.equal(tf.argmax(backward_logits, axis=2), 1)
@@ -82,7 +82,7 @@ class AsterInferer(tf.keras.Model):
 
         return tf.expand_dims(combined_logits, 0)
 
-    def _postprocess_simple(self, logits):
+    def _postprocess_simple(self, logits: tf.float32):
 
         logits = logits[:, : cfg.max_chars]
 
@@ -107,7 +107,7 @@ class AsterInferer(tf.keras.Model):
         return logits
 
     @staticmethod
-    def convert_inputs(fake_images, labels, blank_label):
+    def convert_inputs(fake_images: tf.float32, labels: tf.int32, blank_label: int):
         """
         Convert inputs from the main network (i.e generator/discriminator) input format to the ocr
         input format.

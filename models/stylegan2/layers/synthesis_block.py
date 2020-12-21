@@ -92,7 +92,7 @@ class Synthesis(tf.keras.layers.Layer):
         super(Synthesis, self).__init__(name=name, **kwargs)
         self.resolutions = cfg.generator_resolutions
         self.feat_maps = cfg.generator_feat_maps
-        self.width = cfg.im_width
+        self.width = cfg.image_width
 
         self.k, self.pad0, self.pad1 = compute_paddings(
             [1, 3, 3, 1], up=True, down=False, is_conv=False

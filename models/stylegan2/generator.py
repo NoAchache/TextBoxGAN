@@ -29,11 +29,13 @@ class Generator(tf.keras.Model):
         input_texts, z_latent = inputs  # ((bs, max_chars), (bs , z_dim))
 
         word_encoded = self.word_encoder(
-            input_texts, batch_size=batch_size, training=training,
+            input_texts,
+            batch_size=batch_size,
+            training=training,
         )
 
         style = self.latent_encoder(
-            z_latent, training=training
+            z_latent, training=training, truncation_psi=truncation_psi
         )  # (bs, self.n_style, style_dim)
 
         image_out = self.synthesis([word_encoded, style], training=training)

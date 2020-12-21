@@ -49,9 +49,13 @@ class ModelLoader:
 
         return discriminator
 
-    # TODO check if inference can be faster if better loading
     def load_checkpoint(
-        self, ckpt_kwargs, model_description, expect_partial, ckpt_dir, max_to_keep=None
+        self,
+        ckpt_kwargs: dict,
+        model_description: str,
+        expect_partial: bool,
+        ckpt_dir: str,
+        max_to_keep=None,
     ):
         ckpt = tf.train.Checkpoint(**ckpt_kwargs)
         manager = tf.train.CheckpointManager(ckpt, ckpt_dir, max_to_keep=max_to_keep)

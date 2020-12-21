@@ -1,4 +1,5 @@
 from time import time
+from typing import List
 from tensorflow.keras.metrics import Mean
 import tensorflow as tf
 
@@ -6,21 +7,13 @@ from config import cfg
 
 
 class LossTracker(object):
-    def __init__(self, print_step, log_losses):
+    def __init__(self, loss_names: List[str], print_step=None, log_losses=None):
         self.print_step = print_step
         self.log_losses = log_losses
+        self.loss_names = loss_names
         self._initiate_loss_tracking()
 
     def _initiate_loss_tracking(self):
-        self.loss_names = [
-            "reg_g_loss",
-            "g_loss",
-            "pl_penalty",
-            "ocr_loss",
-            "reg_d_loss",
-            "d_loss",
-            "r1_penalty",
-        ]
 
         self.losses = {
             loss_name: Mean(loss_name, dtype=tf.float32)
@@ -40,7 +33,9 @@ class LossTracker(object):
 
     def print_losses(self, step):
         start_print = "Step: {}. Avg over the last {:d} steps. {:.2f} s/step. Losses:".format(
-            step, int(self.timer.count.numpy()/cfg.strategy.num_replicas_in_sync), self.timer.result().numpy()
+            step,
+            int(self.timer.count.numpy() / cfg.strategy.num_replicas_in_sync),
+            self.timer.result().numpy(),
         )
 
         loss_print = ", ".join(
@@ -56,22 +51,3 @@ class LossTracker(object):
 
     def reinitialize_tracker(self):
         self._initiate_loss_tracking()
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count

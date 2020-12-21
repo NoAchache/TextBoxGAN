@@ -8,10 +8,10 @@ from config.char_tokens import CharTokenizer
 
 cfg = EasyDict()
 
-WORKING_DIR = os.getcwd()
-cfg.experiment_dir = osp.join(WORKING_DIR, "experiments")
+cfg.working_dir = os.path.dirname(os.path.dirname(__file__))
+cfg.experiment_dir = osp.join(cfg.working_dir, "experiments")
 
-EXPERIMENT_NAME = "TextBoxGan_16-12-2020_00h04"  # experiment to load from
+EXPERIMENT_NAME = "Long_run"  # experiment to load from
 
 cfg.experiment_name = (
     f"TextBoxGan_{datetime.now().strftime('%d-%m-%Y_%Hh%M')}"
@@ -19,22 +19,27 @@ cfg.experiment_name = (
     else EXPERIMENT_NAME
 )
 cfg.ckpt_dir = osp.join(cfg.experiment_dir, cfg.experiment_name, "checkpoints")
-# cfg.ckpt_dir = "/home/noe/Projects/Python/TextBoxGan_tests/gpu_expe/TextBoxGan_16-12-2020_00h04/checkpoints"
 cfg.log_dir = osp.join(cfg.experiment_dir, cfg.experiment_name, "logs")
-cfg.data_dir = osp.join(WORKING_DIR, "data")
+
+cfg.data_dir = osp.join(cfg.working_dir, "data")
 cfg.source_datasets = osp.join(cfg.data_dir, "source_datasets")
-cfg.training_dir = osp.join(cfg.data_dir, "training_data")
+training_dir = osp.join(cfg.data_dir, "training_data")
+cfg.training_text_boxes_dir = osp.join(training_dir, "text_boxes")
+cfg.training_text_corpus_dir = osp.join(training_dir, "text_corpus")
+cfg.num_validation_words = 5000
+cfg.num_test_words = 5000
+
 
 # Text boxes specs
-cfg.im_width = 256
+cfg.char_height = 64  # height of a character (i.e. height of the image)
+cfg.char_width = 32  # width of a character
 cfg.min_chars = 1  # min number of chars
 cfg.max_chars = 8  # max number of chars
-cfg.char_height = 64  # height of a character (i.e. height of the image)
-cfg.char_width = int(cfg.im_width / cfg.max_chars)  # width of a character
+cfg.image_width = cfg.char_width * cfg.max_chars
 
 # Model
 cfg.embedding_out_dim = 32
-cfg.encoding_dense_dim = 256
+cfg.word_encoder_dense_dim = 256
 
 cfg.generator_resolutions = [
     (2, 8),  # (h, w)
@@ -45,14 +50,13 @@ cfg.generator_resolutions = [
     (64, 256),
 ]
 
-init_feat_maps = int(
-    cfg.encoding_dense_dim
+generator_initial_feat_maps = int(
+    cfg.word_encoder_dense_dim
     * cfg.max_chars
     / (cfg.generator_resolutions[0][0] * cfg.generator_resolutions[0][1])
 )
 
-
-cfg.generator_feat_maps = [init_feat_maps, 512, 256, 256, 128, 128]
+cfg.generator_feat_maps = [generator_initial_feat_maps, 512, 256, 256, 128, 128]
 cfg.discrim_resolutions = [
     (64, 256),  # (h, w)
     (32, 128),
@@ -68,7 +72,7 @@ cfg.discrim_feat_maps = [64, 128, 128, 256, 256, 512, 512]
 assert (
     cfg.generator_resolutions[-1]
     == cfg.discrim_resolutions[0]
-    == (cfg.char_height, cfg.im_width)
+    == (cfg.char_height, cfg.image_width)
 )
 
 
@@ -95,26 +99,32 @@ cfg.d_opt = {
     "epsilon": 1e-08,
     "reg_interval": 16,
 }
+cfg.ocr_loss = 0.0001
 
 # Logging, Summary, Save
-cfg.summary_steps = {"print_steps": [50, 500], "log_losses": [False, True]}
-cfg.image_summary_step = 200
+cfg.summary_steps_frequency = {"print_steps": [50, 500], "log_losses": [False, True]}
+cfg.image_summary_step_frequency = 199
+
 cfg.num_images_per_log = 3
-cfg.save_step = 10000
+cfg.validation_step_frequency = 10000
+cfg.save_step_frequency = 5000
+cfg.num_ckpts_to_keep = 5
 
 # Resources
-cfg.num_workers = 7
+cfg.num_workers = tf.data.experimental.AUTOTUNE
 cfg.strategy = tf.distribute.MirroredStrategy()
-cfg.batch_size_per_gpu = 4
+cfg.batch_size_per_gpu = 16
 cfg.batch_size = cfg.batch_size_per_gpu * cfg.strategy.num_replicas_in_sync
 
-# Aster (OCR)
-cfg.aster_weights = osp.join(WORKING_DIR, "aster_weights")
+# OCR
+cfg.aster_weights = osp.join(cfg.working_dir, "aster_weights")
 cfg.aster_img_dims = (64, 256)
+cfg.ocr_loss = "softmax_crossentropy"
+assert cfg.ocr_loss in ["softmax_crossentropy", "mse"]
 
 # Others
 cfg.shuffle_seed = 4444
-cfg.max_epochs = 100000
+cfg.max_steps = 10e7
 cfg.char_tokenizer = CharTokenizer()
 
 

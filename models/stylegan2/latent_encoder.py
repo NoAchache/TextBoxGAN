@@ -47,7 +47,9 @@ class LatentEncoder(tf.keras.Model):
     def style_mixing_regularization(self, latents1, w_broadcasted1):
         # get another w and broadcast it
         latents2 = tf.random.normal(shape=tf.shape(latents1), dtype=tf.dtypes.float32)
+
         dlatents2 = self.g_mapping(latents2)
+
         w_broadcasted2 = self.broadcast(dlatents2)
 
         # find mixing limit index
@@ -85,6 +87,7 @@ class LatentEncoder(tf.keras.Model):
             )
 
         truncated_w_broadcasted = lerp(self.w_avg, w_broadcasted, truncation_coefs)
+
         return truncated_w_broadcasted
 
     def call(

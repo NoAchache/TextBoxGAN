@@ -17,6 +17,9 @@ ASTER_MODIFIED_WEIGHTS = ""  # local path
 
 
 def rename_weigths():
+    """
+    Rename aster layers to switch from tf1 to tf2
+    """
 
     tf1_weights = ASTER_ORIGINAL_WEIGHTS
     tf2_weights = ASTER_MODIFIED_WEIGHTS

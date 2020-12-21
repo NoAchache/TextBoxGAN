@@ -1,10 +1,7 @@
-data/source_datasets/MLT17/*
-!data/source_datasets/MLT17/.keep
-data/source_datasets/MLT19/*
-!data/source_datasets/MLT19/.keep
-data/training_data/*
-!data/training_data/.keep
+data/*
 aster_weights/*
 !aster_weights/.keep
 experiments/*
 !experiments/.keep
+.idea/*
+__pycache__/*
