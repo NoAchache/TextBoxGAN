@@ -1,9 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras.layers import (
-    LSTM,
     Dense,
     Dropout,
-    Bidirectional,
     ReLU,
 )
 
@@ -11,10 +9,10 @@ from config import cfg
 
 
 class WordEncoder(tf.keras.Model):
-    def __init__(self, dense_dim=256, dropout_rate=0.3, name="word_encoder"):
+    def __init__(self, dropout_rate=0.3, name="word_encoder"):
         super(WordEncoder, self).__init__(name=name)
 
-        self.dense_dim = dense_dim
+        self.dense_dim = cfg.word_encoder_dense_dim
         self.dropout_rate = dropout_rate
         self.max_chars = cfg.max_chars
 
@@ -22,7 +20,6 @@ class WordEncoder(tf.keras.Model):
         self.embedding_out_dim = cfg.embedding_out_dim
 
         self.dropout = Dropout(self.dropout_rate)
-        self.bilstm = Bidirectional(LSTM(128, return_sequences=True))
         self.fc = Dense(self.dense_dim)
         self.relu = ReLU()
 
@@ -41,7 +38,7 @@ class WordEncoder(tf.keras.Model):
             w0_embedding, name="w0_embedding", trainable=False
         )
 
-    def call(self, inputs, batch_size=None, training=None, mask=None):
+    def call(self, inputs: tf.int32, batch_size=None, training=None, mask=None):
 
         input_texts = inputs
 
@@ -50,15 +47,25 @@ class WordEncoder(tf.keras.Model):
             w_embedding, input_texts
         )  # (bs, max_chars, embedding_dim)
         embeddings = self.dropout(embeddings)
-        x = self.bilstm(embeddings)  # (bs, max_chars, 128*2)
+        # x = self.bilstm(embeddings)  # (bs, max_chars, 128*2)
+        #
+        # mask = tf.tile(
+        #     tf.expand_dims(~tf.equal(input_texts, 0), axis=-1), [1, 1, 128 * 2]
+        # )
+        # x = tf.where(mask, x, 0.0)
 
-        x = tf.reshape(x, [batch_size * self.max_chars, 128 * 2])
+        x = tf.reshape(
+            embeddings, [batch_size * self.max_chars, self.embedding_out_dim]
+        )
 
         x = self.relu(self.fc(x))  # (bs * max_chars, self.dense_dim)
 
-        x = tf.reshape(
-            x,
-            [batch_size, self.out_channels, self.out_char_height, self.out_width],
+        x = tf.transpose(
+            tf.reshape(
+                x,
+                [batch_size, self.out_width, self.out_channels, self.out_char_height],
+            ),
+            (0, 2, 3, 1),
         )
 
         return x

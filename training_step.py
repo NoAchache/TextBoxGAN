@@ -1,26 +1,32 @@
 import tensorflow as tf
 
 from config import cfg
+from utils.utils import mask_text_box
 from models.losses.gan_losses import generator_loss, discriminator_loss
-from models.losses.ocr_loss import softmax_cross_entropy_loss
+from models.losses.ocr_losses import mean_squared_loss, softmax_cross_entropy_loss
+from models.stylegan2.generator import Generator
+from models.stylegan2.discriminator import Discriminator
+from aster_ocr_utils.aster_inferer import AsterInferer
 
 
 class TrainingStep:
     def __init__(
         self,
-        generator,
-        discriminator,
-        aster_ocr,
-        g_optimizer,
-        d_optimizer,
-        g_reg_interval,
-        d_reg_interval,
-        pl_mean,
+        generator: Generator,
+        discriminator: Discriminator,
+        aster_ocr: AsterInferer,
+        g_optimizer: tf.keras.optimizers.Adam,
+        ocr_optimizer: tf.keras.optimizers.Adam,
+        d_optimizer: tf.keras.optimizers.Adam,
+        g_reg_interval: int,
+        d_reg_interval: int,
+        pl_mean: tf.float32,
     ):
         self.generator = generator
         self.discriminator = discriminator
         self.aster_ocr = aster_ocr
         self.g_optimizer = g_optimizer
+        self.ocr_optimizer = ocr_optimizer
         self.d_optimizer = d_optimizer
         self.g_reg_interval = g_reg_interval
         self.d_reg_interval = d_reg_interval
@@ -28,27 +34,49 @@ class TrainingStep:
         self.batch_size_per_gpu = cfg.batch_size_per_gpu
         self.pl_mean = pl_mean
 
-        self.pl_minibatch_shrink = 2
+        pl_minibatch_shrink = 2
+        self.pl_minibatch_shrink = (
+            pl_minibatch_shrink
+            if tf.math.floordiv(self.batch_size_per_gpu, pl_minibatch_shrink) >= 1
+            else self.batch_size_per_gpu
+        )
         self.pl_weight = float(self.pl_minibatch_shrink)
         self.pl_decay = 0.01
         self.r1_gamma = 10.0
-        self.ocr_loss_weight = 0.05
+        self.ocr_loss_type = cfg.ocr_loss
         self.z_dim = cfg.z_dim
         self.char_width = cfg.char_width
         self.pl_noise_scaler = tf.math.rsqrt(
-            float(cfg.im_width) * float(cfg.char_height)
+            float(cfg.image_width) * float(cfg.char_height)
         )
 
     @tf.function
-    def dist_train_step(self, real_images, input_texts, labels, do_r1_reg, do_pl_reg):
-        gen_losses, disc_losses, ocr_loss = cfg.strategy.experimental_run_v2(
+    def dist_train_step(
+        self,
+        real_images: tf.float32,
+        ocr_img: tf.float32,
+        input_texts: tf.int32,
+        ocr_labels: tf.int32,
+        do_r1_reg: bool,
+        do_pl_reg: bool,
+        ocr_loss_weight: float,
+    ):
+
+        (gen_losses, disc_losses, ocr_loss,) = cfg.strategy.experimental_run_v2(
             fn=self._train_step,
-            args=(real_images, input_texts, labels, do_r1_reg, do_pl_reg),
+            args=(
+                real_images,
+                ocr_img,
+                input_texts,
+                ocr_labels,
+                do_r1_reg,
+                do_pl_reg,
+                ocr_loss_weight,
+            ),
         )
 
         # Reduce generator losses
         reg_g_loss, g_loss, pl_penalty = gen_losses
-
         mean_reg_g_loss = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, reg_g_loss, axis=None
         )
@@ -81,53 +109,64 @@ class TrainingStep:
 
         return mean_gen_losses, mean_disc_losses, mean_ocr_loss
 
-    def _train_step(self, real_images, input_texts, labels, do_r1_reg, do_pl_reg):
+    def _train_step(
+        self,
+        real_images: tf.float32,
+        ocr_img: tf.float32,
+        input_texts: tf.int32,
+        ocr_labels: tf.int32,
+        do_r1_reg: bool,
+        do_pl_reg: bool,
+        ocr_loss_weight: float,
+    ):
+
         with tf.GradientTape() as ocr_tape:
-            with tf.GradientTape() as d_tape, tf.GradientTape() as g_tape:
-                z = tf.random.normal(
-                    shape=[self.batch_size_per_gpu, self.z_dim], dtype=tf.float32
-                )
-                fake_images = self.generator([input_texts, z], training=True)
+            with tf.GradientTape() as g_tape:
+                with tf.GradientTape() as d_tape:
+                    z = tf.random.normal(
+                        shape=[self.batch_size_per_gpu, self.z_dim],
+                        dtype=tf.dtypes.float32,
+                    )
+                    fake_images = self.generator([input_texts, z], training=True)
 
+                    fake_images = mask_text_box(
+                        fake_images, input_texts, self.char_width
+                    )
 
-                mask = tf.tile(
-                    tf.expand_dims(
-                        tf.expand_dims(
-                            tf.repeat(
-                                tf.where(input_texts == 0, 0.0, 1.0),
-                                repeats=tf.tile([self.char_width],[tf.shape(input_texts)[1]]),
-                                axis=1,
-                            ),
-                            1,
-                        ),
-                        1,
-                    ),
-                    [1, fake_images.shape[1], fake_images.shape[2], 1],
-                )
+                    fake_scores, reg_g_loss, g_loss, pl_penalty = self._get_gen_losses(
+                        fake_images, do_pl_reg, input_texts
+                    )
+                    reg_d_loss, d_loss, r1_penalty = self._get_disc_losses(
+                        fake_scores, real_images, do_r1_reg
+                    )
 
-                fake_images = fake_images * mask
-
-                fake_scores, reg_g_loss, g_loss, pl_penalty = self._get_gen_losses(
-                    fake_images, do_pl_reg, input_texts
-                )
-                reg_d_loss, d_loss, r1_penalty = self._get_disc_losses(
-                    fake_scores, real_images, do_r1_reg
-                )
-
-            ocr_loss = self.ocr_loss_weight * self._get_ocr_loss(fake_images, labels)
-
-        ocr_gradients = ocr_tape.gradient(
-            ocr_loss, self.generator.word_encoder.trainable_variables
-        )
-        self.g_optimizer.apply_gradients(
-            zip(ocr_gradients, self.generator.word_encoder.trainable_variables)
-        )
+            ocr_loss = self._get_ocr_loss(fake_images, ocr_labels, ocr_img)
+            ocr_loss = ocr_loss_weight * ocr_loss
 
         g_gradients = g_tape.gradient(
-            reg_g_loss, self.generator.trainable_variables
+            reg_g_loss,
+            self.generator.synthesis.trainable_variables
+            + self.generator.latent_encoder.trainable_variables,
         )
         self.g_optimizer.apply_gradients(
-            zip(g_gradients, self.generator.trainable_variables)
+            zip(
+                g_gradients,
+                self.generator.synthesis.trainable_variables
+                + self.generator.latent_encoder.trainable_variables,
+            )
+        )
+
+        ocr_gradients = ocr_tape.gradient(
+            ocr_loss,
+            self.generator.word_encoder.trainable_variables
+            + self.generator.synthesis.trainable_variables,
+        )
+        self.ocr_optimizer.apply_gradients(
+            zip(
+                ocr_gradients,
+                self.generator.word_encoder.trainable_variables
+                + self.generator.synthesis.trainable_variables,
+            )
         )
 
         d_gradients = d_tape.gradient(
@@ -140,9 +179,15 @@ class TrainingStep:
         gen_losses = (reg_g_loss, g_loss, pl_penalty)
         disc_losses = (reg_d_loss, d_loss, r1_penalty)
 
-        return gen_losses, disc_losses, ocr_loss/self.ocr_loss_weight
+        return (
+            gen_losses,
+            disc_losses,
+            ocr_loss / ocr_loss_weight,
+        )
 
-    def _get_disc_losses(self, fake_scores, real_images, do_r1_reg):
+    def _get_disc_losses(
+        self, fake_scores: tf.float32, real_images: tf.float32, do_r1_reg: bool
+    ):
 
         if do_r1_reg:
             real_scores, r1_penalty = self._r1_reg(real_images)
@@ -155,7 +200,9 @@ class TrainingStep:
 
         return reg_d_loss, d_loss, r1_penalty
 
-    def _get_gen_losses(self, fake_images, do_pl_reg, input_texts):
+    def _get_gen_losses(
+        self, fake_images: tf.float32, do_pl_reg: bool, input_texts: tf.int32
+    ):
         fake_scores = self.discriminator(fake_images, training=True)
         g_loss = generator_loss(fake_scores)
 
@@ -172,7 +219,10 @@ class TrainingStep:
         pl_minibatch = tf.maximum(
             1, tf.math.floordiv(self.batch_size_per_gpu, self.pl_minibatch_shrink)
         )
-        pl_z = tf.random.normal(shape=[pl_minibatch, self.z_dim], dtype=tf.float32)
+        pl_z = tf.random.normal(
+            shape=[pl_minibatch, self.z_dim],
+            dtype=tf.dtypes.float32,
+        )
 
         # Evaluate the regularization term using a smaller minibatch to conserve memory.
         with tf.GradientTape() as pl_tape:
@@ -198,9 +248,11 @@ class TrainingStep:
 
         # Calculate (|J*y|-a)^2.
         pl_penalty = tf.square(pl_lengths - self.pl_mean)
+
+        pl_penalty = pl_penalty * self.pl_minibatch_shrink * self.g_reg_interval
         return tf.reduce_sum(pl_penalty) / self.batch_size  # scales penalty
 
-    def _r1_reg(self, real_images):
+    def _r1_reg(self, real_images: tf.float32):
         with tf.GradientTape() as r1_tape:
             r1_tape.watch(real_images)
             real_scores = self.discriminator(real_images, training=True)
@@ -213,9 +265,16 @@ class TrainingStep:
         r1_penalty = tf.reduce_sum(r1_penalty) / self.batch_size  # scales penalty
         return real_scores, r1_penalty
 
-    def _get_ocr_loss(self, fake_images, labels):
+    def _get_ocr_loss(
+        self, fake_images: tf.float32, labels: tf.int32, ocr_img: tf.float32
+    ):
         ocr_input_image = self.aster_ocr.convert_inputs(
             fake_images, labels, blank_label=1
         )
         logits = self.aster_ocr(ocr_input_image)
-        return softmax_cross_entropy_loss(logits, labels)
+
+        if self.ocr_loss_type == "mse":
+            real_logits = self.aster_ocr(ocr_img)
+            return mean_squared_loss(real_logits, logits)
+        elif self.ocr_loss_type == "softmax_crossentropy":
+            return softmax_cross_entropy_loss(logits, labels)
