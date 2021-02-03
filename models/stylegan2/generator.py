@@ -1,10 +1,10 @@
 import tensorflow as tf
-from models.stylegan2.utils import lerp
 
-from models.stylegan2.layers.synthesis_block import Synthesis
-from models.word_encoder import WordEncoder
-from models.stylegan2.latent_encoder import LatentEncoder
 from config import cfg
+from models.stylegan2.latent_encoder import LatentEncoder
+from models.stylegan2.layers.synthesis_block import Synthesis
+from models.stylegan2.utils import lerp
+from models.word_encoder import WordEncoder
 
 
 class Generator(tf.keras.Model):
@@ -22,14 +22,13 @@ class Generator(tf.keras.Model):
         batch_size=cfg.batch_size_per_gpu,
         ret_style=False,
         truncation_psi=1.0,
-        truncation_cutoff=None,
         training=None,
         mask=None,
     ):
-        input_texts, z_latent = inputs  # ((bs, max_chars), (bs , z_dim))
+        input_words, z_latent = inputs  # ((bs, max_char_number), (bs , z_dim))
 
         word_encoded = self.word_encoder(
-            input_texts,
+            input_words,
             batch_size=batch_size,
             training=training,
         )

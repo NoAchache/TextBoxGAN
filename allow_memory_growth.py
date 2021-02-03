@@ -2,6 +2,10 @@ import tensorflow as tf
 
 
 def allow_memory_growth():
+    """
+    Allows memory growth on each gpus to prevent from OOM errors.
+
+    """
     gpus = tf.config.experimental.list_physical_devices("GPU")
     if gpus:
         try:

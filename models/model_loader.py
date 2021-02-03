@@ -1,9 +1,8 @@
-from models.stylegan2.generator import Generator
-from models.stylegan2.discriminator import Discriminator
-from config import cfg
-
-
 import tensorflow as tf
+
+from config import cfg
+from models.stylegan2.discriminator import Discriminator
+from models.stylegan2.generator import Generator
 
 
 class ModelLoader:
@@ -19,11 +18,11 @@ class ModelLoader:
     def load_generator(self, is_g_clone=False, ckpt_dir=None):
 
         test_latent = tf.ones((1, cfg.z_dim), dtype=tf.float32)
-        test_input_text = tf.ones((1, cfg.max_chars), dtype=tf.int32)
+        test_input_word = tf.ones((1, cfg.max_char_number), dtype=tf.int32)
 
         # build generator model
         generator = Generator()
-        generator((test_input_text, test_latent), batch_size=1)
+        generator((test_input_word, test_latent), batch_size=1)
 
         if ckpt_dir is not None:
             ckpt_kwargs = (
@@ -59,14 +58,18 @@ class ModelLoader:
     ):
         ckpt = tf.train.Checkpoint(**ckpt_kwargs)
         manager = tf.train.CheckpointManager(ckpt, ckpt_dir, max_to_keep=max_to_keep)
+
+        resume_checkpoint = (
+            f"{cfg.ckpt_dir}/ckpt-{cfg.resume_step}"
+            if cfg.resume_step != -1
+            else manager.latest_checkpoint
+        )
+
         if expect_partial:
-            ckpt.restore(manager.latest_checkpoint).expect_partial()
+            ckpt.restore(resume_checkpoint).expect_partial()
+
         else:
-            ckpt.restore(manager.latest_checkpoint)
+            ckpt.restore(resume_checkpoint)
         if manager.latest_checkpoint:
-            print(
-                "{} restored from {}".format(
-                    model_description, manager.latest_checkpoint
-                )
-            )
+            print("{} restored from {}".format(model_description, resume_checkpoint))
         return manager

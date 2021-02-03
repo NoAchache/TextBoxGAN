@@ -1,11 +1,12 @@
 from tensorflow.keras.preprocessing.text import Tokenizer
 
 
+# Characters available in our model
 MAIN_CHAR_VECTOR = (
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-'.!?,\""
 )
 
-# char vector of the OCR used
+# Characters available in the OCR used
 ASTER_CHAR_VECTOR = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
 

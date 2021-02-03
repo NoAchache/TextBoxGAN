@@ -1,8 +1,8 @@
 import tensorflow as tf
 
-from models.stylegan2.utils import lerp
-from models.stylegan2.layers.mapping_block import Mapping
 from config import cfg
+from models.stylegan2.layers.mapping_block import Mapping
+from models.stylegan2.utils import lerp
 
 
 class LatentEncoder(tf.keras.Model):
@@ -52,11 +52,6 @@ class LatentEncoder(tf.keras.Model):
 
         w_broadcasted2 = self.broadcast(dlatents2)
 
-        # find mixing limit index
-        # mixing_cutoff_index = tf.cond(
-        #     pred=tf.less(tf.random.uniform([], 0.0, 1.0), self.style_mixing_prob),
-        #     true_fn=lambda: tf.random.uniform([], 1, self.n_broadcast, dtype=tf.dtypes.int32),
-        #     false_fn=lambda: tf.constant(self.n_broadcast, dtype=tf.dtypes.int32))
         if tf.random.uniform([], 0.0, 1.0) < self.style_mixing_prob:
             mixing_cutoff_index = tf.random.uniform(
                 [], 1, self.n_broadcast, dtype=tf.dtypes.int32
@@ -75,17 +70,9 @@ class LatentEncoder(tf.keras.Model):
         )
         return mixed_w_broadcasted
 
-    def truncation_trick(self, w_broadcasted, truncation_psi, truncation_cutoff=None):
+    def truncation_trick(self, w_broadcasted, truncation_psi):
         ones = tf.ones_like(self.mixing_layer_indices, dtype=tf.float32)
-        tpsi = ones * truncation_psi
-        if truncation_cutoff is None:
-            truncation_coefs = tpsi
-        else:
-            indices = tf.range(self.n_broadcast)
-            truncation_coefs = tf.where(
-                condition=tf.less(indices, truncation_cutoff), x=tpsi, y=ones
-            )
-
+        truncation_coefs = ones * truncation_psi
         truncated_w_broadcasted = lerp(self.w_avg, w_broadcasted, truncation_coefs)
 
         return truncated_w_broadcasted
@@ -95,7 +82,6 @@ class LatentEncoder(tf.keras.Model):
         inputs,
         ret_w_broadcasted=False,
         truncation_psi=1.0,
-        truncation_cutoff=None,
         training=None,
         mask=None,
     ):
@@ -109,8 +95,6 @@ class LatentEncoder(tf.keras.Model):
             w_broadcasted = self.style_mixing_regularization(latents, w_broadcasted)
 
         if not training:
-            w_broadcasted = self.truncation_trick(
-                w_broadcasted, truncation_psi, truncation_cutoff
-            )
+            w_broadcasted = self.truncation_trick(w_broadcasted, truncation_psi)
 
         return w_broadcasted

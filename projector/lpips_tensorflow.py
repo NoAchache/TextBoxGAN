@@ -1,8 +1,7 @@
-# import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Lambda, Dropout, Conv2D, Permute
 from tensorflow.keras.applications.vgg16 import VGG16
+from tensorflow.keras.layers import Input, Lambda, Dropout, Conv2D, Permute
+from tensorflow.keras.models import Model
 
 
 def image_preprocess(image):

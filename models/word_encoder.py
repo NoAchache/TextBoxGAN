@@ -14,7 +14,7 @@ class WordEncoder(tf.keras.Model):
 
         self.dense_dim = cfg.word_encoder_dense_dim
         self.dropout_rate = dropout_rate
-        self.max_chars = cfg.max_chars
+        self.max_char_number = cfg.max_char_number
 
         self.embedding_in_dim = len(cfg.char_tokenizer.main.word_index)
         self.embedding_out_dim = cfg.embedding_out_dim
@@ -32,7 +32,7 @@ class WordEncoder(tf.keras.Model):
         w_init = tf.random.normal(shape=weight_shape, mean=0.0, stddev=1.0)
         self.w_embedding = tf.Variable(w_init, name="w_embedding", trainable=True)
 
-        # embedding for the padding of labels
+        # embedding for the padding added to words whose lengths are less than cfg.max_char_number
         w0_embedding = tf.zeros([1, self.embedding_out_dim])
         self.w0_embedding = tf.Variable(
             w0_embedding, name="w0_embedding", trainable=False
@@ -40,25 +40,19 @@ class WordEncoder(tf.keras.Model):
 
     def call(self, inputs: tf.int32, batch_size=None, training=None, mask=None):
 
-        input_texts = inputs
+        input_words = inputs
 
         w_embedding = tf.concat([self.w0_embedding, self.w_embedding], axis=0)
         embeddings = tf.nn.embedding_lookup(
-            w_embedding, input_texts
-        )  # (bs, max_chars, embedding_dim)
+            w_embedding, input_words
+        )  # (bs, max_char_number, embedding_dim)
         embeddings = self.dropout(embeddings)
-        # x = self.bilstm(embeddings)  # (bs, max_chars, 128*2)
-        #
-        # mask = tf.tile(
-        #     tf.expand_dims(~tf.equal(input_texts, 0), axis=-1), [1, 1, 128 * 2]
-        # )
-        # x = tf.where(mask, x, 0.0)
 
         x = tf.reshape(
-            embeddings, [batch_size * self.max_chars, self.embedding_out_dim]
+            embeddings, [batch_size * self.max_char_number, self.embedding_out_dim]
         )
 
-        x = self.relu(self.fc(x))  # (bs * max_chars, self.dense_dim)
+        x = self.relu(self.fc(x))  # (bs * max_char_number, self.dense_dim)
 
         x = tf.transpose(
             tf.reshape(

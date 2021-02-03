@@ -1,17 +1,23 @@
-import tensorflow as tf
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 import os
-import numpy as np
+
 import cv2
+import numpy as np
+import tensorflow as tf
 from tqdm import tqdm
 
-
-from config import cfg
 from aster_ocr_utils.aster_inferer import AsterInferer
+from config import cfg
 from models.losses.ocr_losses import softmax_cross_entropy_loss
+from utils.utils import string_to_aster_int_sequence
+
+OCR_LOSS_THRESHOLD = 15
 
 
 def filter_out_bad_images():
+    """
+    Filters out the images of the text box dataset for which the OCR loss is below the OCR_LOSS_THRESHOLD
+
+    """
 
     print("Filtering out bad images")
     aster_ocr = AsterInferer()
@@ -25,33 +31,32 @@ def filter_out_bad_images():
             lines = annotations.readlines()
 
             for i, data in tqdm(enumerate(lines)):
-                img_name, label = data.split(",", 1)
-                label = label.strip("\n")
-                img = cv2.imread(os.path.join(cfg.training_text_boxes_dir, img_name))
-                h, w, _ = img.shape
+                image_name, word = data.split(",", 1)
+                word = word.strip("\n")
 
-                ocr_img = cv2.resize(
-                    img, (cfg.aster_img_dims[1], cfg.aster_img_dims[0])
-                )
-                ocr_img = ocr_img.astype(np.float32) / 127.5 - 1.0
-
-                ocr_encoded_label = cfg.char_tokenizer.aster.texts_to_sequences([label])
-                ocr_padded_label = pad_sequences(
-                    ocr_encoded_label, maxlen=cfg.max_chars, value=1, padding="post"
-                )[0]
-
-                if len(label) not in range(cfg.min_chars, cfg.max_chars + 1):
+                if len(word) > cfg.max_char_number or len(word) == 0:
                     continue
 
-                ocr_img = tf.expand_dims(tf.constant(ocr_img), 0)
-                ocr_padded_label = tf.expand_dims(tf.constant(ocr_padded_label), 0)
+                image = cv2.imread(
+                    os.path.join(cfg.training_text_boxes_dir, image_name)
+                )
+                h, w, _ = image.shape
 
-                pred = aster_ocr(ocr_img)
+                image = cv2.resize(
+                    image, (cfg.aster_image_dims[1], cfg.aster_image_dims[0])
+                )
+                image = image.astype(np.float32) / 127.5 - 1.0
+                image = tf.expand_dims(tf.constant(image), 0)
+
+                ocr_label_array = tf.constant(string_to_aster_int_sequence([word]))
+
+                prediction = aster_ocr(image)
 
                 loss = (
-                    softmax_cross_entropy_loss(pred, ocr_padded_label) * cfg.batch_size
+                    softmax_cross_entropy_loss(prediction, ocr_label_array)
+                    * cfg.batch_size
                 )
-                if loss < 15:
+                if loss < OCR_LOSS_THRESHOLD:
                     annotations_filtered.write(data)
 
 
