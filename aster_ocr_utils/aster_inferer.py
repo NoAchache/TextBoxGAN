@@ -3,9 +3,23 @@ import tensorflow_addons as tfa
 
 from config import cfg
 
+"""
+Reads the word written in a text box
+"""
+
 
 class AsterInferer(tf.keras.Model):
     def __init__(self, combine_forward_and_backward=False):
+        """
+
+        Parameters
+        ----------
+        combine_forward_and_backward: uses a combination of the forward and back predictions is set to True. Only uses
+        the forward prediction is set to False. The pre-trained model gives better results when
+        combine_forward_and_backward=False
+
+        """
+
         super(AsterInferer, self).__init__()
         self.combine_forward_and_backward = combine_forward_and_backward
         tfa.register_all(custom_kernels=False)
@@ -24,19 +38,31 @@ class AsterInferer(tf.keras.Model):
 
         return tf.concat(logits, axis=0)
 
-    def _postprocess_combine(self, prediction: tf.float32):
+    def _postprocess_combine(self, logits: tf.float32):
+        """
+        Postprocess both the forward and backward logits.
 
-        # retrieve logits and keep only the first cfg.max_chars time steps
-        forward_logits = prediction["forward_logits"][:, : cfg.max_chars]
-        backward_logits = prediction["backward_logits"][:, : cfg.max_chars]
+        Parameters
+        ----------
+        logits: backward and forward logits.
+
+        Returns
+        -------
+        A padded combination of backward and forward logits.
+
+        """
+
+        # retrieve logits and keep only the first cfg.max_char_number time steps
+        forward_logits = logits["forward_logits"][:, : cfg.max_char_number]
+        backward_logits = logits["backward_logits"][:, : cfg.max_char_number]
 
         combined_logits = self._combine_logits(forward_logits, backward_logits)
 
         # retrieve the remaining logits of forward
         remaining_logits = forward_logits[:, combined_logits.shape[1] :, :]
 
-        # compute the required padding so that the output tensor has exactly cfg.max_chars time steps
-        padding_len = cfg.max_chars - forward_logits.shape[1]
+        # compute the required padding so that the output tensor has exactly cfg.max_char_number time steps
+        padding_len = cfg.max_char_number - forward_logits.shape[1]
 
         # creates a tensor filled with 0s and 1s, to pad the logits with blank indexes. Multiply
         # it by 1000 since the loss uses a softmax
@@ -58,6 +84,10 @@ class AsterInferer(tf.keras.Model):
         return tf.concat([combined_logits, remaining_logits, padding], axis=1)
 
     def _combine_logits(self, forward_logits: tf.float32, backward_logits: tf.float32):
+        """
+        Combine forward and backward logits
+
+        """
         # create masks to filter blank indexes
         forward_mask = ~tf.equal(tf.argmax(forward_logits, axis=2), 1)
         backward_mask = ~tf.equal(tf.argmax(backward_logits, axis=2), 1)
@@ -83,13 +113,25 @@ class AsterInferer(tf.keras.Model):
         return tf.expand_dims(combined_logits, 0)
 
     def _postprocess_simple(self, logits: tf.float32):
+        """
+        Postprocess the forward logits.
 
-        logits = logits[:, : cfg.max_chars]
+        Parameters
+        ----------
+        logits: forward logits.
 
-        padding_len = cfg.max_chars - tf.shape(logits)[1]
+        Returns
+        -------
+        Padded forward logits.
+
+        """
+
+        logits = logits[:, : cfg.max_char_number]
+
+        padding_len = cfg.max_char_number - tf.shape(logits)[1]
 
         if padding_len > 0:
-            # creates a tensor filled with 0s and 1s, to pad the logits with blank indexes. Multiply
+            # creates a tensor filled with 0s and 1s, to pad the logits with blank indexes. Times
             # it by 1000 since the loss uses a softmax
             padding = (
                 tf.expand_dims(
@@ -111,6 +153,16 @@ class AsterInferer(tf.keras.Model):
         """
         Convert inputs from the main network (i.e generator/discriminator) input format to the ocr
         input format.
+
+        Parameters
+        ----------
+        fake_images: Text boxes generated with our model.
+        labels: Integer sequence obtained from the input word (initially a string).
+        blank_label: Index of the blank label.
+
+        Returns
+        -------
+        Image preprocessed for the OCR model.
         """
         fake_images = tf.transpose(fake_images, (0, 2, 3, 1))  # B,C,H,W to B,H,W,C
 
@@ -127,7 +179,7 @@ class AsterInferer(tf.keras.Model):
                 fake_image = fake_image[:, :w_crop_idx, :]
 
             return tf.image.resize(
-                fake_image, [cfg.aster_img_dims[0], cfg.aster_img_dims[1]]
+                fake_image, [cfg.aster_image_dims[0], cfg.aster_image_dims[1]]
             )
 
         # Aster ocr works better with resized images rather than padded images.

@@ -1,12 +1,24 @@
-from tqdm import tqdm
 import os
+
 import numpy as np
+from tqdm import tqdm
 
 from config import cfg
 from config.char_tokens import MAIN_CHAR_VECTOR
 
 
 def get_words_from_file(file_name: str) -> dict:
+    """
+    Extract the word from a text file.
+
+    Parameters
+    ----------
+    file_name: Name of the text file.
+
+    Returns
+    -------
+    A dictionary {all the characters in MAIN_CHAR_VECTOR : the words that contains the corresponding character}
+    """
     file_path = os.path.join(cfg.source_datasets, file_name)
 
     words_appearance_per_char = {char: [] for char in MAIN_CHAR_VECTOR}
@@ -25,7 +37,7 @@ def get_words_from_file(file_name: str) -> dict:
                     if file_name == "wikipediaTXT.txt"
                     else len(word) <= 8
                 )
-                if is_label_valid(word) and len_condition:
+                if is_word_valid(word) and len_condition:
                     for letter in word:
                         words_appearance_per_char[letter].append(word)
 
@@ -37,6 +49,24 @@ def select_words(
     wikipedia_words_generators: dict,
     max_words: int,
 ):
+    """
+    Select words from the wikipedia corpus and the english dictionary to build the dataset. At each iteration,
+    a word containing the character that appears the least in the dataset is selected.
+
+    Parameters
+    ----------
+    english_dict_words_generators: {all the characters in MAIN_CHAR_VECTOR : generator of the words that contains the
+    corresponding character presents in the english dictionary}
+    wikipedia_words_generators: {all the characters in MAIN_CHAR_VECTOR : generator of the words that contains the
+    corresponding character presents in the wikipedia corpus}
+    max_words: the max number of words in the dataset. Set it to -1 to get all words until one of the generator runs out
+    of words.
+
+    Returns
+    -------
+
+    """
+
     chars_number_appearance = {char: 0 for char in MAIN_CHAR_VECTOR}
 
     all_words = []
@@ -84,6 +114,10 @@ def select_words(
 
 
 def main() -> None:
+    """
+    Entry point of the file. Make the text corpus datasets from the wikipedia corpus and the english dictionary.
+
+    """
 
     english_dict_words_appearance_per_char = get_words_from_file(
         "english_dictionary.txt"
@@ -142,8 +176,8 @@ def main() -> None:
     validation_file.close()
 
 
-def is_label_valid(label: str) -> bool:
-    return not any((c not in MAIN_CHAR_VECTOR) for c in label.strip("\n"))
+def is_word_valid(word: str) -> bool:
+    return not any((c not in MAIN_CHAR_VECTOR) for c in word.strip("\n"))
 
 
 if __name__ == "__main__":

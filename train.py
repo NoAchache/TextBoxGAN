@@ -8,15 +8,15 @@ if ALLOW_MEMORY_GROWTH:
 
 import tensorflow as tf
 
+from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
 from config.config import print_config
-from training_step import TrainingStep
-from validation_step import ValidationStep
-from utils import TensorboardWriter, LossTracker
 from dataset_utils.training_data_loader import TrainingDataLoader
 from dataset_utils.validation_data_loader import ValidationDataLoader
 from models.model_loader import ModelLoader
-from aster_ocr_utils.aster_inferer import AsterInferer
+from training_step import TrainingStep
+from utils import TensorboardWriter, LossTracker
+from validation_step import ValidationStep
 
 
 class Trainer(object):
@@ -71,7 +71,7 @@ class Trainer(object):
             beta_2=self.g_opt["beta2"],
             epsilon=self.g_opt["epsilon"],
         )
-        self.ocr_loss = cfg.ocr_loss
+        self.ocr_loss_weight = cfg.ocr_loss_weight
 
         self.aster_ocr = AsterInferer()
 
@@ -107,6 +107,18 @@ class Trainer(object):
 
     @staticmethod
     def update_optimizer_params(params: dict):
+        """
+        Updates the optimizer configurations.
+
+        Parameters
+        ----------
+        params: Configs of the optimizer
+
+        Returns
+        -------
+        Updated configuration of the optimizer
+
+        """
         params_copy = params.copy()
         mb_ratio = params_copy["reg_interval"] / (params_copy["reg_interval"] + 1)
         params_copy["learning_rate"] = params_copy["learning_rate"] * mb_ratio
@@ -115,6 +127,10 @@ class Trainer(object):
         return params_copy
 
     def train(self):
+        """
+        Main training loop.
+
+        """
         train_dataset = self.training_data_loader.load_dataset(
             batch_size=self.batch_size
         )
@@ -153,7 +169,7 @@ class Trainer(object):
 
         validation_tracker = LossTracker(["validation_ocr_loss"])
         # start training
-        for real_images, ocr_img, input_texts, ocr_labels in train_dataset:
+        for real_images, ocr_image, input_words, ocr_labels in train_dataset:
             step = self.g_optimizer.iterations.numpy()
 
             # g train step
@@ -164,15 +180,15 @@ class Trainer(object):
                 step > 5000
             ):  # Set the ocr_loss_weight (close) to 0 at the beginning of the training since it is too early
                 # to have a text to read from
-                ocr_loss_weight = self.ocr_loss
+                ocr_loss_weight = self.ocr_loss_weight
 
             else:
                 ocr_loss_weight = 1e-8
 
             (gen_losses, disc_losses, ocr_loss,) = self.training_step.dist_train_step(
                 real_images,
-                ocr_img,
-                input_texts,
+                ocr_image,
+                input_words,
                 ocr_labels,
                 do_r1_reg,
                 do_pl_reg,
@@ -208,13 +224,13 @@ class Trainer(object):
             # save every self.image_summary_step
             if step % self.image_summary_step_frequency == 0:
                 self.tensorboard_writer.log_images(
-                    input_texts, self.g_clone, self.aster_ocr, step
+                    input_words, self.g_clone, self.aster_ocr, step
                 )
 
             if step % self.validation_step_frequency == 0:
-                for input_texts, labels in validation_dataset:
+                for input_words, ocr_labels in validation_dataset:
                     ocr_loss = self.validation_step.dist_validation_step(
-                        input_texts, labels
+                        input_words, ocr_labels
                     )
                     validation_tracker.increment_losses(
                         {"validation_ocr_loss": ocr_loss}

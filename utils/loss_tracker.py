@@ -1,7 +1,8 @@
 from time import time
 from typing import List
-from tensorflow.keras.metrics import Mean
+
 import tensorflow as tf
+from tensorflow.keras.metrics import Mean
 
 from config import cfg
 
@@ -14,7 +15,10 @@ class LossTracker(object):
         self._initiate_loss_tracking()
 
     def _initiate_loss_tracking(self):
+        """
+        Initiates a dictionary containing all the losses tracked
 
+        """
         self.losses = {
             loss_name: Mean(loss_name, dtype=tf.float32)
             for loss_name in self.loss_names
@@ -24,6 +28,14 @@ class LossTracker(object):
         self.start_time = time()
 
     def increment_losses(self, losses: dict):
+        """
+        Increments the tracked losses with new values
+
+        Parameters
+        ----------
+        losses: {name of the loss : value of the loss}
+
+        """
         for loss_name, loss_value in losses.items():
             if loss_value > 0:
                 self.losses[loss_name](loss_value)
@@ -32,10 +44,20 @@ class LossTracker(object):
         self.start_time = time()
 
     def print_losses(self, step):
-        start_print = "Step: {}. Avg over the last {:d} steps. {:.2f} s/step. Losses:".format(
-            step,
-            int(self.timer.count.numpy() / cfg.strategy.num_replicas_in_sync),
-            self.timer.result().numpy(),
+        """
+        Display the average of the losses tracked.
+
+        Parameters
+        ----------
+        step: Current training step.
+
+        """
+        start_print = (
+            "Step: {}. Avg over the last {:d} steps. {:.2f} s/step. Losses:".format(
+                step,
+                int(self.timer.count.numpy() / cfg.strategy.num_replicas_in_sync),
+                self.timer.result().numpy(),
+            )
         )
 
         loss_print = ", ".join(

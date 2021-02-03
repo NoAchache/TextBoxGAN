@@ -1,12 +1,12 @@
 import tensorflow as tf
 
+from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
-from utils.utils import mask_text_box
 from models.losses.gan_losses import generator_loss, discriminator_loss
 from models.losses.ocr_losses import mean_squared_loss, softmax_cross_entropy_loss
-from models.stylegan2.generator import Generator
 from models.stylegan2.discriminator import Discriminator
-from aster_ocr_utils.aster_inferer import AsterInferer
+from models.stylegan2.generator import Generator
+from utils.utils import mask_text_box
 
 
 class TrainingStep:
@@ -43,7 +43,7 @@ class TrainingStep:
         self.pl_weight = float(self.pl_minibatch_shrink)
         self.pl_decay = 0.01
         self.r1_gamma = 10.0
-        self.ocr_loss_type = cfg.ocr_loss
+        self.ocr_loss_type = cfg.ocr_loss_type
         self.z_dim = cfg.z_dim
         self.char_width = cfg.char_width
         self.pl_noise_scaler = tf.math.rsqrt(
@@ -54,20 +54,38 @@ class TrainingStep:
     def dist_train_step(
         self,
         real_images: tf.float32,
-        ocr_img: tf.float32,
-        input_texts: tf.int32,
+        ocr_images: tf.float32,
+        input_words: tf.int32,
         ocr_labels: tf.int32,
         do_r1_reg: bool,
         do_pl_reg: bool,
         ocr_loss_weight: float,
     ):
+        """
+        Entry point of the class. Distributes the training step on the available GPUs.
+
+        Parameters
+        ----------
+        real_images: Real text boxes (i.e. from the dataset) preprocessed for our model.
+        ocr_images: Real text boxes (i.e. from the dataset) preprocessed for the OCR model.
+        input_words: Integer sequences obtained from the input words (initially strings) using the MAIN_CHAR_VECTOR.
+        ocr_labels: Integer sequences obtained from the input words (initially strings) using the ASTER_CHAR_VECTOR.
+        do_r1_reg: Whether to compute the R1 regression.
+        do_pl_reg: Whether to compute the Path Length regression.
+        ocr_loss_weight: Weight applied to the OCR loss.
+
+        Returns
+        -------
+        Mean of the losses obtained for the text boxes generated from the input_words.
+
+        """
 
         (gen_losses, disc_losses, ocr_loss,) = cfg.strategy.experimental_run_v2(
             fn=self._train_step,
             args=(
                 real_images,
-                ocr_img,
-                input_texts,
+                ocr_images,
+                input_words,
                 ocr_labels,
                 do_r1_reg,
                 do_pl_reg,
@@ -112,13 +130,33 @@ class TrainingStep:
     def _train_step(
         self,
         real_images: tf.float32,
-        ocr_img: tf.float32,
-        input_texts: tf.int32,
+        ocr_images: tf.float32,
+        input_words: tf.int32,
         ocr_labels: tf.int32,
         do_r1_reg: bool,
         do_pl_reg: bool,
         ocr_loss_weight: float,
     ):
+        """
+        Generates text boxes from the input_words and compute their GAN and OCR losses.
+
+        Parameters
+        ----------
+        real_images: Real text boxes (i.e. from the dataset) preprocessed for our model.
+        ocr_images: Real text boxes (i.e. from the dataset) preprocessed for the OCR model.
+        input_words: Integer sequences obtained from the input words (initially strings) using the MAIN_CHAR_VECTOR.
+        ocr_labels: Integer sequences obtained from the input words (initially strings) using the ASTER_CHAR_VECTOR.
+        do_r1_reg: Whether to compute the R1 regression.
+        do_pl_reg: Whether to compute the Path Length regression.
+        ocr_loss_weight: Weight applied to the OCR loss.
+
+        Returns
+        -------
+        gen_losses: Losses associated to the generator.
+        disc_losses: Losses associated to the discriminator.
+        ocr_loss / ocr_loss_weight: weighted OCR loss
+
+        """
 
         with tf.GradientTape() as ocr_tape:
             with tf.GradientTape() as g_tape:
@@ -127,20 +165,23 @@ class TrainingStep:
                         shape=[self.batch_size_per_gpu, self.z_dim],
                         dtype=tf.dtypes.float32,
                     )
-                    fake_images = self.generator([input_texts, z], training=True)
+                    fake_images = self.generator([input_words, z], training=True)
 
                     fake_images = mask_text_box(
-                        fake_images, input_texts, self.char_width
+                        fake_images, input_words, self.char_width
                     )
 
-                    fake_scores, reg_g_loss, g_loss, pl_penalty = self._get_gen_losses(
-                        fake_images, do_pl_reg, input_texts
-                    )
-                    reg_d_loss, d_loss, r1_penalty = self._get_disc_losses(
+                    (
+                        fake_scores,
+                        reg_g_loss,
+                        g_loss,
+                        pl_penalty,
+                    ) = self._get_generator_losses(fake_images, do_pl_reg, input_words)
+                    reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
                         fake_scores, real_images, do_r1_reg
                     )
 
-            ocr_loss = self._get_ocr_loss(fake_images, ocr_labels, ocr_img)
+            ocr_loss = self._get_ocr_loss(fake_images, ocr_labels, ocr_images)
             ocr_loss = ocr_loss_weight * ocr_loss
 
         g_gradients = g_tape.gradient(
@@ -185,9 +226,25 @@ class TrainingStep:
             ocr_loss / ocr_loss_weight,
         )
 
-    def _get_disc_losses(
+    def _get_discriminator_losses(
         self, fake_scores: tf.float32, real_images: tf.float32, do_r1_reg: bool
     ):
+        """
+        Computes the losses associated to the discriminator, i.e. the discriminator loss and the R1 regression
+
+        Parameters
+        ----------
+        fake_scores: Output of the discriminator when inferring the fake_images.
+        real_images: Real text boxes (i.e. from the dataset) preprocessed for our model.
+        do_r1_reg: Whether to compute the R1 regression.
+
+        Returns
+        -------
+        reg_d_loss: Regularized discriminator loss.
+        d_loss: Discriminator loss.
+        r1_penalty: Penalty of the Path Length regression.
+
+        """
 
         if do_r1_reg:
             real_scores, r1_penalty = self._r1_reg(real_images)
@@ -200,14 +257,31 @@ class TrainingStep:
 
         return reg_d_loss, d_loss, r1_penalty
 
-    def _get_gen_losses(
-        self, fake_images: tf.float32, do_pl_reg: bool, input_texts: tf.int32
+    def _get_generator_losses(
+        self, fake_images: tf.float32, do_pl_reg: bool, input_words: tf.int32
     ):
+        """
+        Computes the losses associated to the generator, i.e. the generator loss and the Path Length regression
+
+        Parameters
+        ----------
+        fake_images: Text boxes generated with our model.
+        do_pl_reg: Whether to compute the Path Length regression.
+        input_words: Integer sequences obtained from the input words (initially strings) using the MAIN_CHAR_VECTOR.
+
+        Returns
+        -------
+        fake_scores: Output of the discriminator when inferring the fake_images.
+        reg_g_loss: Regularized generator loss.
+        g_loss: Generator loss.
+        pl_penalty: Penalty of the Path Length regression.
+
+        """
         fake_scores = self.discriminator(fake_images, training=True)
         g_loss = generator_loss(fake_scores)
 
         pl_penalty = (
-            self._path_length_reg(input_texts)
+            self._path_length_reg(input_words)
             if do_pl_reg
             else tf.constant(0.0, dtype=tf.float32)
         )
@@ -215,7 +289,20 @@ class TrainingStep:
 
         return fake_scores, reg_g_loss, g_loss, pl_penalty
 
-    def _path_length_reg(self, input_texts):
+    def _path_length_reg(self, input_words):
+        """
+        Computes the Path Length regression.
+
+        Parameters
+        ----------
+        input_words: Integer sequences obtained from the input words (initially strings) using the MAIN_CHAR_VECTOR.
+
+        Returns
+        -------
+        Penalty of the Path Length regression.
+
+
+        """
         pl_minibatch = tf.maximum(
             1, tf.math.floordiv(self.batch_size_per_gpu, self.pl_minibatch_shrink)
         )
@@ -228,7 +315,7 @@ class TrainingStep:
         with tf.GradientTape() as pl_tape:
             pl_tape.watch(pl_z)
             pl_fake_images, pl_style = self.generator(
-                (input_texts[:pl_minibatch], pl_z),
+                (input_words[:pl_minibatch], pl_z),
                 batch_size=pl_minibatch,
                 ret_style=True,
                 training=True,
@@ -253,6 +340,19 @@ class TrainingStep:
         return tf.reduce_sum(pl_penalty) / self.batch_size  # scales penalty
 
     def _r1_reg(self, real_images: tf.float32):
+        """
+        Infere the discriminator and computes the R1 regression.
+
+        Parameters
+        ----------
+        real_images: Real text boxes (i.e. from the dataset) preprocessed for our model.
+
+        Returns
+        -------
+        real_scores: Output of the discriminator when inferring the real_images.
+        r1_penalty: Penalty of the R1 regression.
+
+        """
         with tf.GradientTape() as r1_tape:
             r1_tape.watch(real_images)
             real_scores = self.discriminator(real_images, training=True)
@@ -266,15 +366,30 @@ class TrainingStep:
         return real_scores, r1_penalty
 
     def _get_ocr_loss(
-        self, fake_images: tf.float32, labels: tf.int32, ocr_img: tf.float32
+        self, fake_images: tf.float32, ocr_labels: tf.int32, ocr_images: tf.float32
     ):
-        ocr_input_image = self.aster_ocr.convert_inputs(
-            fake_images, labels, blank_label=1
+        """
+        Computes the OCR loss.
+
+        Parameters
+        ----------
+        fake_images: Text boxes generated with our model.
+        ocr_labels: Integer sequences obtained from the input words (initially strings) using the ASTER_CHAR_VECTOR.
+        ocr_images: Real text boxes (i.e. from the dataset) preprocessed for the OCR model.
+
+        Returns
+        -------
+        OCR loss obtained for the fake_images.
+
+        """
+
+        fake_images_ocr_format = self.aster_ocr.convert_inputs(
+            fake_images, ocr_labels, blank_label=1
         )
-        logits = self.aster_ocr(ocr_input_image)
+        logits = self.aster_ocr(fake_images_ocr_format)
 
         if self.ocr_loss_type == "mse":
-            real_logits = self.aster_ocr(ocr_img)
+            real_logits = self.aster_ocr(ocr_images)
             return mean_squared_loss(real_logits, logits)
         elif self.ocr_loss_type == "softmax_crossentropy":
-            return softmax_cross_entropy_loss(logits, labels)
+            return softmax_cross_entropy_loss(logits, ocr_labels)
