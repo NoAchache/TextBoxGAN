@@ -1,6 +1,6 @@
 # TextBoxGan
 
-Generate text boxes from input words to train OCRs.
+Generates text boxes from input words with a GAN.
 
 Video: Generating the word "Generate" at different training steps: **https://youtu.be/YdicGxqRWOY**
 
@@ -42,10 +42,11 @@ docker build -t textboxgan .
 
 #### Run the docker
 ```
-docker run -it -v --gpus all 'pwd':/tmp -w /tmp textboxgan bash
+docker run --gpus all -it -v `pwd`:/tmp -w /tmp textboxgan bash
 ```
 
 #### Download and make datasets
+In the docker, run:
 
 ```
 make download-and-make-datasets
@@ -54,6 +55,8 @@ make download-and-make-datasets
 <a name="running"/>
 
 ## Running
+*All the following commands should be run within the docker.*
+
 #### Training
 Specify all the configs in [config.py](config/config.py).
 ```
@@ -139,9 +142,9 @@ represents the backpropagation of respectively the OCR and GAN losses*<p>
  
 
 **OCR Loss [(code)](models/losses/ocr_losses.py)**: Two possible losses were experimented:
-* **Softmax crossentropy:** applied between the OCR's output logits of the generated text box and the label, i.e. the input 
+* **Softmax crossentropy (SCE):** applied between the OCR's output logits of the generated text box and the label, i.e. the input 
   word.
-* **Mean squared error:** applied between the OCR's output logits of the generated text box and those of a real text box, with 
+* **Mean squared error (MSE):** applied between the OCR's output logits of the generated text box and those of a real text box, with 
   the same label. Hence, our problem is modeled as a regression rather than a classification.
   
 **GAN Loss / Regularization**:
@@ -204,11 +207,23 @@ text box generated is cropped depending on the word's length (c.f.
 ### Comparing different training strategies
 
 
-![losses comparison](ReadMe_images/losses_comparison.png)<p align="center">*Figure 5: Losses tracked during 100K steps, with a batch of 4,
-for different training strategies. All validation OCR losses are made using the Softmax Crossentropy, regardless of the loss used for training.*<p>
+![losses comparison](ReadMe_images/losses_comparison.png)<p align="center">*Figure 5.a: Losses tracked during 100K steps, with a batch of 4,
+for different training strategies. The OCR loss is consistently the Softmax Crossentropy loss, regardless of the loss used for training.*<p>
 
-As shown in *Figure 5*, training with a Softmax Crossentropy OCR loss gave significantly better results thant training with a MSE. Randomly
-selecting input words from the corpus dataset did not noticeably decrease the OCR loss. However, as shown in 
+![generating_words_mse_vs_sce](ReadMe_images/generating_words_mse_vs_sce.png)<p align="center">*Figure 5.b: Examples of words generated
+with models trained with different OCR losses. The input words are shown on the left and the first and the second column of images correspond
+respectively to the results obtained with the model "SCE: Not using the corpus dataset" (c.f. Figure 5.a), and
+to the results obtained with the model trained with the MSE.*<p>
+
+
+Even though different OCR losses are used in the experiments, the validation metric is always the SCE 
+loss, since it is a good indicator of whether the text box is readable and contains the right text. As observed in 
+*Figure 5.a*, when training with the MSE, the validation loss is approximately 5 times larger than when training with the
+SCE. The bad performance of the MSE training is emphasized in *Figure 6*, where the text boxes generated with the 
+corresponding model are blurry and not always matching to the input word.
+
+
+Furthermore, randomly selecting input words from the corpus dataset did not noticeably decrease the OCR loss. However, as shown in 
 *Figure 6*, it allowed the network to generate more neatly the characters appearing the least in the text box dataset.
 
 
@@ -267,9 +282,13 @@ to the original images, and the three others to words generated using the style 
 
 ## Conclusion
 
-The results obtained with TextBoxGan are satisfying. However, from the limitations stated above, it can be deduced 
-than an OCR will not generalise enough if trained only with data generated with our model. Hence, our model may
-be more appropriate for data augmentation, i.e. training with a mix of generated text boxes and  real text boxes.
+TextBoxGan can generate readable text boxes corresponding from an input word, with various styles. 
+However, from the limitations stated above, it can be deduced that an OCR will not generalise enough if trained only 
+with data generated with our model. Hence, our model may
+be more appropriate for data augmentation, i.e. training with a mix of generated text boxes and real text boxes, at the 
+risk of creating a bias towards certain characters shapes. However, considering that, at least to our knowledge, it is
+the first attempt to generate text boxes with a GAN, the results obtained are very satisfying.
+
 
 ### Areas for improvement
 To attempt to overcome some of the limitations identified for our model, the following ideas could be implemented:
@@ -295,6 +314,9 @@ These are the different repositories used in our implementation:
 * Perceptual Loss: https://github.com/moono/lpips-tf2.x
 * Aster tf1 implementation with pre-trained model. The code was adapted to work in tf2 and the weights converted to tf2, 
   in order to generate a Saved Model which is used to train our network: https://github.com/bgshih/aster 
+  
+
+Contact: noea@sicara.com
   
   
 [StyleGan2]: http://arxiv.org/abs/1912.04958

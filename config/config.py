@@ -25,7 +25,7 @@ cfg.experiment_name = (
     else EXPERIMENT_NAME
 )
 cfg.ckpt_dir = osp.join(cfg.experiment_dir, cfg.experiment_name, "checkpoints")
-cfg.resume_step = 225000  # set to -1 to select last checkpoint
+cfg.resume_step = 225000  # set it to -1 to select last checkpoint. E.g. resume_step = 225000 to load the file ckpt-225000
 cfg.log_dir = osp.join(cfg.experiment_dir, cfg.experiment_name, "logs")
 
 cfg.data_dir = osp.join(cfg.working_dir, "data")
