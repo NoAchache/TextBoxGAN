@@ -22,6 +22,10 @@ of generating "Words with the same style" using our model*<p>
 <a name="setup"/>
 
 ## Setup
+#### Requirements
+- Docker
+- 1 or more CUDA compatible GPUs (currently the project runs on GPU only)
+
 #### Download the models
 The following models are available in [google drive]:
 
@@ -293,7 +297,7 @@ the first attempt to generate text boxes with a GAN, the results obtained are ve
 ### Areas for improvement
 To attempt to overcome some of the limitations identified for our model, the following ideas could be implemented:
 
-* Training the model switching between the Mean-Squared Error and the Softmax CrossEntropy losses. Indeed, when using 
+* Training the model switching between the MSE and the SCE losses. Indeed, when using 
   the MSE, the objective is not to write the perfect word, but rather to write the word as it is on the real text box. 
   Doing so could allow the model to generate characters of different shapes when changing the style.
   
