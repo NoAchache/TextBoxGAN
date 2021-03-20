@@ -32,7 +32,7 @@ def infer_images(aster, images_dir):
         ocr_image = tf.expand_dims(tf.constant(ocr_image), 0)
 
         logits = aster(ocr_image)
-        sequence_length = [logits.shape[1]] * tf.shape(logits)[0].numpy()
+        sequence_length = [logits.shape[1]]
         sequences_decoded = tf.nn.ctc_greedy_decoder(
             tf.transpose(logits, [1, 0, 2]), sequence_length, merge_repeated=False
         )[0][0]

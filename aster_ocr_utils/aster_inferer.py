@@ -11,11 +11,10 @@ Reads the word written in a text box
 class AsterInferer(tf.keras.Model):
     def __init__(self, combine_forward_and_backward=False):
         """
-
         Parameters
         ----------
-        combine_forward_and_backward: uses a combination of the forward and back predictions is set to True. Only uses
-        the forward prediction is set to False. The pre-trained model gives better results when
+        combine_forward_and_backward: uses a combination of the forward and back predictions if set to True. Only uses
+        the forward prediction if set to False. The pre-trained model gives better results when
         combine_forward_and_backward=False
 
         """
