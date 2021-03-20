@@ -1,6 +1,6 @@
 # TextBoxGan
 
-Generates text boxes from input words with a GAN.
+Generates text boxes from input words with a Generative Adversial Network.
 
 Video: Generating the word "Generate" at different training steps: **https://youtu.be/YdicGxqRWOY**
 
