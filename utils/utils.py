@@ -1,12 +1,15 @@
 from typing import List
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 from config import cfg
 
 
-def mask_text_box(fake_images: tf.float32, input_words: tf.int32, char_width: int):
+def mask_text_box(
+    fake_images: tf.float32, input_words: tf.int32, char_width: int
+) -> tf.float32:
     """
     Masks the text boxes outputted by the generator, in the cases where the length of the word is less than
     cfg.max_char_number. Since each character is supposed to take 1/cfg.max_char_number of the width of the text box,
@@ -41,7 +44,7 @@ def mask_text_box(fake_images: tf.float32, input_words: tf.int32, char_width: in
     return fake_images * mask
 
 
-def generator_output_to_uint8(fake_images: tf.float32):
+def generator_output_to_uint8(fake_images: tf.float32) -> tf.uint8:
     """
     Converts the output of the generator to uint8 RGB images.
 
@@ -59,7 +62,7 @@ def generator_output_to_uint8(fake_images: tf.float32):
     return tf.cast(fake_images, tf.uint8)
 
 
-def string_to_main_int_sequence(words_list: List[str]):
+def string_to_main_int_sequence(words_list: List[str]) -> np.ndarray:
     """
     Converts input strings to integer sequences using the main character vector, and pad them if their length are less
     than cfg.max_char_number.
@@ -81,7 +84,7 @@ def string_to_main_int_sequence(words_list: List[str]):
     )
 
 
-def string_to_aster_int_sequence(words_list: List[str]):
+def string_to_aster_int_sequence(words_list: List[str]) -> np.ndarray:
     """
     Converts input strings to integer sequences using aster's character vector, and pad them if their length are less
     than cfg.max_char_number.

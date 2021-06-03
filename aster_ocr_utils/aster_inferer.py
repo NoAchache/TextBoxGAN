@@ -3,21 +3,20 @@ import tensorflow_addons as tfa
 
 from config import cfg
 
-"""
-Reads the word written in a text box
-"""
-
 
 class AsterInferer(tf.keras.Model):
-    def __init__(self, combine_forward_and_backward=False):
-        """
-        Parameters
-        ----------
-        combine_forward_and_backward: uses a combination of the forward and back predictions if set to True. Only uses
-        the forward prediction if set to False. The pre-trained model gives better results when
-        combine_forward_and_backward=False
+    """
+    Reads the word written in a text box
 
-        """
+    Parameters
+    ----------
+    combine_forward_and_backward: uses a combination of the forward and back predictions if set to True. Only uses
+    the forward prediction if set to False. The pre-trained model gives better results when
+    combine_forward_and_backward=False
+
+    """
+
+    def __init__(self, combine_forward_and_backward=False):
 
         super(AsterInferer, self).__init__()
         self.combine_forward_and_backward = combine_forward_and_backward
@@ -37,7 +36,7 @@ class AsterInferer(tf.keras.Model):
 
         return tf.concat(logits, axis=0)
 
-    def _postprocess_combine(self, logits: tf.float32):
+    def _postprocess_combine(self, logits: tf.float32) -> tf.float32:
         """
         Postprocess both the forward and backward logits.
 
@@ -82,7 +81,9 @@ class AsterInferer(tf.keras.Model):
 
         return tf.concat([combined_logits, remaining_logits, padding], axis=1)
 
-    def _combine_logits(self, forward_logits: tf.float32, backward_logits: tf.float32):
+    def _combine_logits(
+        self, forward_logits: tf.float32, backward_logits: tf.float32
+    ) -> tf.float32:
         """
         Combine forward and backward logits
 
@@ -111,7 +112,7 @@ class AsterInferer(tf.keras.Model):
 
         return tf.expand_dims(combined_logits, 0)
 
-    def _postprocess_simple(self, logits: tf.float32):
+    def _postprocess_simple(self, logits: tf.float32) -> tf.float32:
         """
         Postprocess the forward logits.
 
@@ -148,7 +149,9 @@ class AsterInferer(tf.keras.Model):
         return logits
 
     @staticmethod
-    def convert_inputs(fake_images: tf.float32, labels: tf.int32, blank_label: int):
+    def convert_inputs(
+        fake_images: tf.float32, labels: tf.int32, blank_label: int
+    ) -> tf.float32:
         """
         Convert inputs from the main network (i.e generator/discriminator) input format to the ocr
         input format.

@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import tensorflow as tf
 
 from aster_ocr_utils.aster_inferer import AsterInferer
@@ -7,6 +9,8 @@ from utils.utils import generator_output_to_uint8
 
 
 class TensorboardWriter:
+    """ Log data related to the performance of the model on a file which can be visualised on tensorboard. """
+
     def __init__(self, log_dir: str):
         self.train_summary_writer = tf.summary.create_file_writer(log_dir)
         self.num_images_per_log = cfg.num_images_per_log
@@ -14,7 +18,7 @@ class TensorboardWriter:
         self.strategy = cfg.strategy
         self.num_images_per_log = min(cfg.batch_size, cfg.num_images_per_log)
 
-    def log_scalars(self, loss_dict: dict, step: int):
+    def log_scalars(self, loss_dict: dict, step: int) -> None:
         """
         Save the losses.
 
@@ -34,7 +38,7 @@ class TensorboardWriter:
         generator: Generator,
         aster_ocr: AsterInferer,
         step: int,
-    ):
+    ) -> None:
         """
         Generates text boxes and saves them.
 
@@ -83,7 +87,9 @@ class TensorboardWriter:
             tf.summary.text("words", text_log, step=step)
 
     @tf.function
-    def _gen_samples(self, z: tf.float32, input_words: tf.int32, generator: Generator):
+    def _gen_samples(
+        self, z: tf.float32, input_words: tf.int32, generator: Generator
+    ) -> Tuple[tf.float32, tf.float32]:
         """
 
         Parameters
@@ -121,7 +127,7 @@ class TensorboardWriter:
     @staticmethod
     def _convert_per_replica_tensor(
         strategy: tf.distribute.Strategy, *per_replica_tensors
-    ):
+    ) -> tf.float32:
         """
         Concat the tensors distributed over the different GPU replicas.
 
@@ -152,7 +158,7 @@ class TensorboardWriter:
         input_word_array: tf.int32,
         ocr_images: tf.float32,
         aster_ocr: AsterInferer,
-    ):
+    ) -> str:
         """
         Reads the text in the generated text boxes using the OCR and converts the integer arrays in strings.
 

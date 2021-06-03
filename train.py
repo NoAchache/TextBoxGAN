@@ -20,6 +20,8 @@ from validation_step import ValidationStep
 
 
 class Trainer(object):
+    """ Train the model. The different configs can be tuned in config/config. """
+
     def __init__(self):
 
         self.batch_size = cfg.batch_size

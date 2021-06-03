@@ -1,4 +1,5 @@
 import os
+from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -6,17 +7,14 @@ import tensorflow as tf
 from config import cfg
 from utils.utils import string_to_main_int_sequence, string_to_aster_int_sequence
 
-"""
-Loads a Tensorflow dataset which is used for validation and testing.
-
-"""
-
 
 class ValidationDataLoader:
+    """Loads a Tensorflow dataset which is used for validation and testing."""
+
     def __init__(self, file_name: str):
         self.file_name = file_name
 
-    def load_dataset(self, batch_size: int):
+    def load_dataset(self, batch_size: int) -> tf.data.Dataset:
 
         with open(
             os.path.join(cfg.training_text_corpus_dir, self.file_name), "r"
@@ -38,7 +36,7 @@ class ValidationDataLoader:
 
         return dataset
 
-    def _data_getter(self, data) -> (np.ndarray, np.ndarray):
+    def _data_getter(self, data) -> Tuple[np.ndarray, np.ndarray]:
 
         word = data.numpy().decode("utf-8")
         word = word.strip("\n")

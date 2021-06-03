@@ -8,13 +8,15 @@ from config import cfg
 
 
 class LossTracker(object):
+    """ Tracks the different losses to monitor the performance of the model."""
+
     def __init__(self, loss_names: List[str], print_step=None, log_losses=None):
         self.print_step = print_step
         self.log_losses = log_losses
         self.loss_names = loss_names
         self._initiate_loss_tracking()
 
-    def _initiate_loss_tracking(self):
+    def _initiate_loss_tracking(self) -> None:
         """
         Initiates a dictionary containing all the losses tracked
 
@@ -27,7 +29,7 @@ class LossTracker(object):
         self.timer = Mean("timer", dtype=tf.float32)
         self.start_time = time()
 
-    def increment_losses(self, losses: dict):
+    def increment_losses(self, losses: dict) -> None:
         """
         Increments the tracked losses with new values
 
@@ -43,7 +45,7 @@ class LossTracker(object):
         self.timer(time() - self.start_time)
         self.start_time = time()
 
-    def print_losses(self, step):
+    def print_losses(self, step) -> None:
         """
         Display the average of the losses tracked.
 
@@ -71,5 +73,5 @@ class LossTracker(object):
 
         print(start_print + loss_print)
 
-    def reinitialize_tracker(self):
+    def reinitialize_tracker(self) -> None:
         self._initiate_loss_tracking()

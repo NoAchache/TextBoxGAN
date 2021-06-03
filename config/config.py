@@ -7,10 +7,7 @@ from easydict import EasyDict
 
 from config.char_tokens import CharTokenizer
 
-"""
-Configs for training and inference.
-
-"""
+""" Configs for training and inference. """
 
 cfg = EasyDict()
 
@@ -20,7 +17,7 @@ cfg.experiment_dir = osp.join(cfg.working_dir, "experiments")
 EXPERIMENT_NAME = None  # experiment to load from
 
 cfg.experiment_name = (
-    f"TextBoxGan_{datetime.now().strftime('%d-%m-%Y_%Hh%M')}"
+    f"TextBoxGAN_{datetime.now().strftime('%d-%m-%Y_%Hh%M')}"
     if EXPERIMENT_NAME == None
     else EXPERIMENT_NAME
 )

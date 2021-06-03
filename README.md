@@ -1,4 +1,4 @@
-# TextBoxGan
+# TextBoxGAN
 
 Generates text boxes from input words with a Generative Adversial Network.
 
@@ -286,7 +286,7 @@ to the original images, and the three others to words generated using the style 
 
 ## Conclusion
 
-TextBoxGan can generate readable text boxes corresponding from an input word, with various styles. 
+TextBoxGAN can generate readable text boxes corresponding from an input word, with various styles. 
 However, from the limitations stated above, it can be deduced that an OCR will not generalise enough if trained only 
 with data generated with our model. Hence, our model may
 be more appropriate for data augmentation, i.e. training with a mix of generated text boxes and real text boxes, at the 

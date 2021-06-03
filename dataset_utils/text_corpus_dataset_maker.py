@@ -1,4 +1,5 @@
 import os
+from typing import Dict, List, Generator
 
 import numpy as np
 from tqdm import tqdm
@@ -7,9 +8,9 @@ from config import cfg
 from config.char_tokens import MAIN_CHAR_VECTOR
 
 
-def get_words_from_file(file_name: str) -> dict:
+def get_words_from_file(file_name: str) -> Dict[str, List[str]]:
     """
-    Extract the word from a text file.
+    Extract the words from a text file.
 
     Parameters
     ----------
@@ -21,7 +22,7 @@ def get_words_from_file(file_name: str) -> dict:
     """
     file_path = os.path.join(cfg.source_datasets, file_name)
 
-    words_appearance_per_char = {char: [] for char in MAIN_CHAR_VECTOR}
+    words_containing_each_char = {char: [] for char in MAIN_CHAR_VECTOR}
     with open(file_path, "rb") as file:
         print("Retrieving words from: " + file_name)
         for line in tqdm(file.readlines()):
@@ -39,16 +40,16 @@ def get_words_from_file(file_name: str) -> dict:
                 )
                 if is_word_valid(word) and len_condition:
                     for letter in word:
-                        words_appearance_per_char[letter].append(word)
+                        words_containing_each_char[letter].append(word)
 
-    return words_appearance_per_char
+    return words_containing_each_char
 
 
 def select_words(
-    english_dict_words_generators: dict,
-    wikipedia_words_generators: dict,
+    english_dict_words_generators: Dict[str, Generator[List[str], None, None]],
+    wikipedia_words_generators: Dict[str, Generator[List[str], None, None]],
     max_words: int,
-):
+) -> List[str]:
     """
     Select words from the wikipedia corpus and the english dictionary to build the dataset. At each iteration,
     a word containing the character that appears the least in the dataset is selected.
