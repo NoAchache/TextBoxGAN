@@ -5,6 +5,7 @@ if ALLOW_MEMORY_GROWTH:
     from allow_memory_growth import allow_memory_growth
 
     allow_memory_growth()
+
 import argparse
 import os
 from typing import List
@@ -23,6 +24,8 @@ from validation_step import ValidationStep
 
 
 class Infere:
+    """ Infere the trained model"""
+
     def __init__(self):
         self.generator = ModelLoader().load_generator(
             is_g_clone=True, ckpt_dir=cfg.ckpt_dir

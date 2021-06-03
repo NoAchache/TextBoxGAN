@@ -1,9 +1,9 @@
+from typing import Tuple
+
 import tensorflow as tf
 
 # Inspired from the pytorch version https://github.com/rosinality/stylegan2-pytorch/blob/master/projector.py
-"""
-Projects a text box to find the latent vector responsible for its style.
-"""
+
 ALLOW_MEMORY_GROWTH = True
 
 if ALLOW_MEMORY_GROWTH:
@@ -30,6 +30,8 @@ from utils.utils import string_to_main_int_sequence, string_to_aster_int_sequenc
 
 
 class Projector:
+    """ Projects a text box to find the latent vector responsible for its style. """
+
     def __init__(self, text_of_the_image):
         self.text_of_the_image = text_of_the_image
         self.image_width = cfg.char_width * len(text_of_the_image)
@@ -60,7 +62,7 @@ class Projector:
         self.optimizer = tf.keras.optimizers.Adam()
         self.ocr_loss_factor = 0.1
 
-    def _get_lr(self, t: float):
+    def _get_lr(self, t: float) -> float:
         """
         Computes a new learning rate.
 
@@ -79,7 +81,7 @@ class Projector:
 
         return self.lr * lr_ramp
 
-    def _compute_w_latent(self):
+    def _compute_w_latent(self) -> Tuple[tf.float32, tf.float32]:
         """
         Computes the style vector variable to train. This variable is initialized as the mean of self.n_mean_latent
         random style vectors.
@@ -100,7 +102,7 @@ class Projector:
         w_latent_var = tf.Variable(w_latent_mean, name="w_latent_var", trainable=True)
         return w_latent_std, w_latent_var
 
-    def _load_image(self, target_image_path: str, image_width: int):
+    def _load_image(self, target_image_path: str, image_width: int) -> tf.float32:
         """
         Load and preprocess the target image.
 
@@ -117,7 +119,7 @@ class Projector:
         image = cv2.resize(image, (image_width, self.char_height))
         return tf.expand_dims(tf.constant(image), 0)
 
-    def main(self, target_image_path: str, output_dir: str):
+    def main(self, target_image_path: str, output_dir: str) -> None:
         """
         Entry point of the Projector.
 
@@ -182,7 +184,7 @@ class Projector:
 
     def _get_ocr_loss(
         self, ocr_label: tf.int32, generated_image: tf.float32, input_word: tf.int32
-    ):
+    ) -> tf.float32:
         """
         Computes the softmax crossentropy OCR loss.
 
@@ -207,7 +209,7 @@ class Projector:
 
     def get_perceptual_loss(
         self, generated_image: tf.float32, target_image: tf.float32
-    ):
+    ) -> tf.float32:
         """
         Computes the perceptual loss.
 
@@ -235,7 +237,7 @@ class Projector:
         word_encoded: tf.float32,
         input_word: tf.int32,
         target_image: tf.float32,
-    ):
+    ) -> tf.float32:
         """
         Training step for the projector.
 

@@ -1,5 +1,5 @@
 FROM tensorflow/tensorflow:2.3.0-gpu
-WORKDIR /TextBoxGan
+WORKDIR /TextBoxGAN
 COPY requirements.txt .
 
 RUN apt-get install p7zip

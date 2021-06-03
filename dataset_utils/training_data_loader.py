@@ -1,5 +1,6 @@
 import os
 from random import random
+from typing import Tuple
 
 import cv2
 import numpy as np
@@ -8,13 +9,10 @@ import tensorflow as tf
 from config import cfg
 from utils.utils import string_to_main_int_sequence, string_to_aster_int_sequence
 
-"""
-Loads a Tensorflow dataset which is used for training.
-
-"""
-
 
 class TrainingDataLoader:
+    """ Loads a Tensorflow dataset which is used for training. """
+
     def __init__(self):
         self.return_ocr_image = cfg.ocr_loss_type == "mse"
         self.use_corpus_word = cfg.ocr_loss_type == "softmax_crossentropy"
@@ -25,7 +23,7 @@ class TrainingDataLoader:
         self.corpus_words_generator = iter(self.corpus_words)
         self.corpus_word_ratio = 0.25
 
-    def load_dataset(self, batch_size: int):
+    def load_dataset(self, batch_size: int) -> tf.data.Dataset:
         with open(
             os.path.join(cfg.training_text_boxes_dir, "annotations_filtered.txt"), "r"
         ) as annotations_file:
@@ -55,7 +53,9 @@ class TrainingDataLoader:
 
         return dataset
 
-    def _data_getter(self, data) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+    def _data_getter(
+        self, data
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
         data = data.numpy().decode("utf-8")
         image_name, word = data.split(",", 1)

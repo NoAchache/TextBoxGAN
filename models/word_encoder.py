@@ -9,6 +9,8 @@ from config import cfg
 
 
 class WordEncoder(tf.keras.Model):
+    """ Encodes the word through dense layers while keeping the order of the letters."""
+
     def __init__(self, dropout_rate=0.3, name="word_encoder"):
         super(WordEncoder, self).__init__(name=name)
 

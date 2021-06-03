@@ -13,11 +13,8 @@ from utils.utils import string_to_aster_int_sequence
 OCR_LOSS_THRESHOLD = 15
 
 
-def filter_out_bad_images():
-    """
-    Filters out the images of the text box dataset for which the OCR loss is below the OCR_LOSS_THRESHOLD
-
-    """
+def filter_out_bad_images() -> None:
+    """ Filters out the images of the text box dataset for which the OCR loss is below the OCR_LOSS_THRESHOLD """
 
     print("Filtering out bad images")
     aster_ocr = AsterInferer()

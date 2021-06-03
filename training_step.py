@@ -1,3 +1,5 @@
+from typing import Tuple, List
+
 import tensorflow as tf
 
 from aster_ocr_utils.aster_inferer import AsterInferer
@@ -10,6 +12,8 @@ from utils.utils import mask_text_box
 
 
 class TrainingStep:
+    """ Infere the model, computes the associated losses and backpropagates them. """
+
     def __init__(
         self,
         generator: Generator,
@@ -60,7 +64,11 @@ class TrainingStep:
         do_r1_reg: bool,
         do_pl_reg: bool,
         ocr_loss_weight: float,
-    ):
+    ) -> Tuple[
+        Tuple[tf.float32, tf.float32, tf.float32],
+        Tuple[tf.float32, tf.float32, tf.float32],
+        tf.float32,
+    ]:
         """
         Entry point of the class. Distributes the training step on the available GPUs.
 
@@ -136,7 +144,11 @@ class TrainingStep:
         do_r1_reg: bool,
         do_pl_reg: bool,
         ocr_loss_weight: float,
-    ):
+    ) -> Tuple[
+        Tuple[tf.float32, tf.float32, tf.float32],
+        Tuple[tf.float32, tf.float32, tf.float32],
+        tf.float32,
+    ]:
         """
         Generates text boxes from the input_words and compute their GAN and OCR losses.
 
@@ -184,37 +196,25 @@ class TrainingStep:
             ocr_loss = self._get_ocr_loss(fake_images, ocr_labels, ocr_images)
             ocr_loss = ocr_loss_weight * ocr_loss
 
-        g_gradients = g_tape.gradient(
-            reg_g_loss,
-            self.generator.synthesis.trainable_variables
-            + self.generator.latent_encoder.trainable_variables,
-        )
-        self.g_optimizer.apply_gradients(
-            zip(
-                g_gradients,
-                self.generator.synthesis.trainable_variables
-                + self.generator.latent_encoder.trainable_variables,
-            )
+        self._backpropagates_gradient(
+            tape=g_tape,
+            models=[self.generator.synthesis, self.generator.latent_encoder],
+            loss=reg_g_loss,
+            optimizer=self.g_optimizer,
         )
 
-        ocr_gradients = ocr_tape.gradient(
-            ocr_loss,
-            self.generator.word_encoder.trainable_variables
-            + self.generator.synthesis.trainable_variables,
-        )
-        self.ocr_optimizer.apply_gradients(
-            zip(
-                ocr_gradients,
-                self.generator.word_encoder.trainable_variables
-                + self.generator.synthesis.trainable_variables,
-            )
+        self._backpropagates_gradient(
+            tape=ocr_tape,
+            models=[self.generator.synthesis, self.generator.word_encoder],
+            loss=ocr_loss,
+            optimizer=self.ocr_optimizer,
         )
 
-        d_gradients = d_tape.gradient(
-            reg_d_loss, self.discriminator.trainable_variables
-        )
-        self.d_optimizer.apply_gradients(
-            zip(d_gradients, self.discriminator.trainable_variables)
+        self._backpropagates_gradient(
+            tape=d_tape,
+            models=[self.discriminator],
+            loss=reg_d_loss,
+            optimizer=self.d_optimizer,
         )
 
         gen_losses = (reg_g_loss, g_loss, pl_penalty)
@@ -226,9 +226,22 @@ class TrainingStep:
             ocr_loss / ocr_loss_weight,
         )
 
+    def _backpropagates_gradient(
+        self,
+        tape: tf.GradientTape,
+        models: List[tf.keras.Model],
+        loss: tf.float32,
+        optimizer: tf.keras.optimizers.Adam,
+    ) -> None:
+        """ Backpropagates the gradient of the loss into the given networks"""
+
+        trainable_variables = sum([model.trainable_variables for model in models], [])
+        gradients = tape.gradient(loss, trainable_variables)
+        optimizer.apply_gradients(zip(gradients, trainable_variables))
+
     def _get_discriminator_losses(
         self, fake_scores: tf.float32, real_images: tf.float32, do_r1_reg: bool
-    ):
+    ) -> Tuple[tf.float32, tf.float32, tf.float32]:
         """
         Computes the losses associated to the discriminator, i.e. the discriminator loss and the R1 regression
 
@@ -259,7 +272,7 @@ class TrainingStep:
 
     def _get_generator_losses(
         self, fake_images: tf.float32, do_pl_reg: bool, input_words: tf.int32
-    ):
+    ) -> Tuple[tf.float32, tf.float32, tf.float32, tf.float32]:
         """
         Computes the losses associated to the generator, i.e. the generator loss and the Path Length regression
 
@@ -289,7 +302,7 @@ class TrainingStep:
 
         return fake_scores, reg_g_loss, g_loss, pl_penalty
 
-    def _path_length_reg(self, input_words):
+    def _path_length_reg(self, input_words) -> tf.float32:
         """
         Computes the Path Length regression.
 
@@ -339,7 +352,7 @@ class TrainingStep:
         pl_penalty = pl_penalty * self.pl_minibatch_shrink * self.g_reg_interval
         return tf.reduce_sum(pl_penalty) / self.batch_size  # scales penalty
 
-    def _r1_reg(self, real_images: tf.float32):
+    def _r1_reg(self, real_images: tf.float32) -> Tuple[tf.float32, tf.float32]:
         """
         Infere the discriminator and computes the R1 regression.
 
@@ -367,7 +380,7 @@ class TrainingStep:
 
     def _get_ocr_loss(
         self, fake_images: tf.float32, ocr_labels: tf.int32, ocr_images: tf.float32
-    ):
+    ) -> tf.float32:
         """
         Computes the OCR loss.
 

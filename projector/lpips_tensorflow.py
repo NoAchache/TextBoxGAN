@@ -1,3 +1,5 @@
+# File taken from https://github.com/moono/lpips-tf2.x
+
 import tensorflow as tf
 from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.layers import Input, Lambda, Dropout, Conv2D, Permute
