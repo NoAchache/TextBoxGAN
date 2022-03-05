@@ -89,7 +89,7 @@ class TensorboardWriter:
     @tf.function
     def _gen_samples(
         self, z: tf.float32, input_words: tf.int32, generator: Generator
-    ) -> Tuple[tf.float32, tf.float32]:
+    ) -> Tuple["tf.float32", "tf.float32"]:
         """
 
         Parameters
