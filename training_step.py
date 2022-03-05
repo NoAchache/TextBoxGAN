@@ -65,9 +65,9 @@ class TrainingStep:
         do_pl_reg: bool,
         ocr_loss_weight: float,
     ) -> Tuple[
-        Tuple[tf.float32, tf.float32, tf.float32],
-        Tuple[tf.float32, tf.float32, tf.float32],
-        tf.float32,
+        Tuple["tf.float32", "tf.float32", "tf.float32"],
+        Tuple["tf.float32", "tf.float32", "tf.float32"],
+        "tf.float32",
     ]:
         """
         Entry point of the class. Distributes the training step on the available GPUs.
@@ -145,8 +145,8 @@ class TrainingStep:
         do_pl_reg: bool,
         ocr_loss_weight: float,
     ) -> Tuple[
-        Tuple[tf.float32, tf.float32, tf.float32],
-        Tuple[tf.float32, tf.float32, tf.float32],
+        Tuple["tf.float32", "tf.float32", "tf.float32"],
+        Tuple["tf.float32", "tf.float32", "tf.float32"],
         tf.float32,
     ]:
         """
@@ -241,7 +241,7 @@ class TrainingStep:
 
     def _get_discriminator_losses(
         self, fake_scores: tf.float32, real_images: tf.float32, do_r1_reg: bool
-    ) -> Tuple[tf.float32, tf.float32, tf.float32]:
+    ) -> Tuple["tf.float32", "tf.float32", "tf.float32"]:
         """
         Computes the losses associated to the discriminator, i.e. the discriminator loss and the R1 regression
 
@@ -272,7 +272,7 @@ class TrainingStep:
 
     def _get_generator_losses(
         self, fake_images: tf.float32, do_pl_reg: bool, input_words: tf.int32
-    ) -> Tuple[tf.float32, tf.float32, tf.float32, tf.float32]:
+    ) -> Tuple["tf.float32", "tf.float32", "tf.float32", "tf.float32"]:
         """
         Computes the losses associated to the generator, i.e. the generator loss and the Path Length regression
 
@@ -352,7 +352,7 @@ class TrainingStep:
         pl_penalty = pl_penalty * self.pl_minibatch_shrink * self.g_reg_interval
         return tf.reduce_sum(pl_penalty) / self.batch_size  # scales penalty
 
-    def _r1_reg(self, real_images: tf.float32) -> Tuple[tf.float32, tf.float32]:
+    def _r1_reg(self, real_images: tf.float32) -> Tuple["tf.float32", "tf.float32"]:
         """
         Infere the discriminator and computes the R1 regression.
 

@@ -81,7 +81,7 @@ class Projector:
 
         return self.lr * lr_ramp
 
-    def _compute_w_latent(self) -> Tuple[tf.float32, tf.float32]:
+    def _compute_w_latent(self) -> Tuple["tf.float32", "tf.float32"]:
         """
         Computes the style vector variable to train. This variable is initialized as the mean of self.n_mean_latent
         random style vectors.
