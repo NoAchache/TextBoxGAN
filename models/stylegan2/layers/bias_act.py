@@ -36,7 +36,11 @@ class BiasAct(tf.keras.layers.Layer):
     def get_config(self):
         config = super(BiasAct, self).get_config()
         config.update(
-            {"lrmul": self.lrmul, "gain": self.gain, "len2": self.len2,}
+            {
+                "lrmul": self.lrmul,
+                "gain": self.gain,
+                "len2": self.len2,
+            }
         )
         return config
 

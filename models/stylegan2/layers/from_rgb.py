@@ -31,6 +31,10 @@ class FromRGB(tf.keras.layers.Layer):
     def get_config(self):
         config = super(FromRGB, self).get_config()
         config.update(
-            {"fmaps": self.fmaps, "h_res": self.h_res, "w_res": self.w_res,}
+            {
+                "fmaps": self.fmaps,
+                "h_res": self.h_res,
+                "w_res": self.w_res,
+            }
         )
         return config

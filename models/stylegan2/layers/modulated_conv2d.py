@@ -92,7 +92,13 @@ class ModulatedConv2D(tf.keras.layers.Layer):
         # Convolution with optional upsampling.
         if self.up:
             x = upsample_conv_2d(
-                x, self.in_w_res, self.in_h_res, w, self.pad0, self.pad1, self.k,
+                x,
+                self.in_w_res,
+                self.in_h_res,
+                w,
+                self.pad0,
+                self.pad1,
+                self.k,
             )
         else:
             x = tf.nn.conv2d(
