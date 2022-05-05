@@ -147,7 +147,7 @@ class TrainingStep:
     ) -> Tuple[
         Tuple["tf.float32", "tf.float32", "tf.float32"],
         Tuple["tf.float32", "tf.float32", "tf.float32"],
-        tf.float32,
+        "tf.float32",
     ]:
         """
         Generates text boxes from the input_words and compute their GAN and OCR losses.
