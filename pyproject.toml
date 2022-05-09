@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "textboxgan"
+version = "1.0.0"
+description = ""
+authors = ["Noe Achache <noe.achache@gmail.com>", "Antoine Eudes <antoine.eudes@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "3.6.9"
+numpy = "1.18.4"
+tensorflow_addons = "0.11.2"
+tqdm = "4.30.0"
+tensorflow = "2.3.0"
+easydict = "1.9"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
