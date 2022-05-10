@@ -16,6 +16,8 @@ RUN rm -r Python-3.9.12
 RUN ln -s /usr/local/bin/python3 /usr/local/bin/python && \
     ln -s /usr/local/bin/pip3 /usr/local/bin/pip
 
+RUN apt-get install ffmpeg libsm6 libxext6 -y # Required to install open-cv
+
 WORKDIR /TextBoxGAN
 
 RUN apt-get install -y apt-utils p7zip wget
@@ -25,5 +27,3 @@ RUN pip install poetry
 RUN poetry config virtualenvs.create false
 COPY pyproject.toml poetry.lock ./
 RUN poetry install
-
-RUN pip install opencv-python-headless
