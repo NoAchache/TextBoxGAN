@@ -41,7 +41,7 @@ class ValidationStep:
 
         """
 
-        ocr_loss = cfg.strategy.experimental_run_v2(
+        ocr_loss = cfg.strategy.run(
             fn=self._validation_step,
             args=(
                 input_words,
