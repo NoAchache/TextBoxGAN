@@ -88,7 +88,7 @@ class TrainingStep:
 
         """
 
-        (gen_losses, disc_losses, ocr_loss,) = cfg.strategy.experimental_run_v2(
+        (gen_losses, disc_losses, ocr_loss,) = cfg.strategy.run(
             fn=self._train_step,
             args=(
                 real_images,
