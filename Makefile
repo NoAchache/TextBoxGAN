@@ -39,8 +39,8 @@ download-image-datasets:
 	unzip words_part_3.zip
 
 make-datasets:
-	python3 -m dataset_utils.text_corpus_dataset_maker && \
-	python3 -m dataset_utils.text_box_dataset_maker && \
-	python3 -m dataset_utils.filter_out_bad_images
+	poetry run python -m dataset_utils.text_corpus_dataset_maker && \
+	poetry run python -m dataset_utils.text_box_dataset_maker && \
+	poetry run python -m dataset_utils.filter_out_bad_images
 
 download-and-make-datasets: create-data-dir download-text-datasets download-image-datasets make-datasets

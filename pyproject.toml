@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "textboxgan"
+version = "1.0.0"
+description = ""
+authors = ["Noe Achache <noe.achache@gmail.com>", "Antoine Eudes <antoine.eudes@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "3.9.12"
+tensorflow_addons = "^0.16.1"
+tensorflow-macos = {version = "^2.8.0", markers = "platform_machine == 'arm64'"}
+tensorflow = {version = "^2.8.0", markers = "platform_machine == 'x86_64'"}
+numpy = "^1.22.3"
+tqdm = "^4.64.0"
+easydict = "^1.9"
+opencv-python = "^4.5.5"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
