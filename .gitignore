@@ -8,4 +8,4 @@ __pycache__
 projector/perceptual_weights/*
 !projector/perceptual_weights/lin/.keep
 !projector/perceptual_weights/vgg/.keep
-
+.pytest_cache
