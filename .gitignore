@@ -10,3 +10,4 @@ projector/perceptual_weights/*
 !projector/perceptual_weights/vgg/.keep
 .pytest_cache
 .coverage
+.DS_Store
