@@ -68,9 +68,7 @@ class Conv2D(tf.keras.layers.Layer):
             )
 
         else:
-            partial_conv_func = partial(tf.nn.conv2d,
-                filters=w, padding="SAME"
-            )
+            partial_conv_func = partial(tf.nn.conv2d, filters=w, padding="SAME")
             x = apply_conv_in_good_format(x, partial_conv_func, h_w_stride=[1, 1])
 
         return x

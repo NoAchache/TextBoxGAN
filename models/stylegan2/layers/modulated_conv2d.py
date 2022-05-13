@@ -11,6 +11,7 @@ from models.stylegan2.layers.cuda.upfirdn_2d_v2 import (
 )
 from models.stylegan2.utils import apply_conv_in_good_format
 
+
 class ModulatedConv2D(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -103,11 +104,8 @@ class ModulatedConv2D(tf.keras.layers.Layer):
                 self.k,
             )
         else:
-            partial_conv_func = partial(tf.nn.conv2d,
-                         filters=w, padding="SAME"
-                    )
-            x = apply_conv_in_good_format(x, partial_conv_func, h_w_stride=[1,1])
-
+            partial_conv_func = partial(tf.nn.conv2d, filters=w, padding="SAME")
+            x = apply_conv_in_good_format(x, partial_conv_func, h_w_stride=[1, 1])
 
         # Reshape/scale output
         if self.fused_modconv:

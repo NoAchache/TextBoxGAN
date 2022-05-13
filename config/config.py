@@ -100,8 +100,11 @@ cfg.validation_step_frequency = 10000
 cfg.save_step_frequency = 5000
 cfg.num_ckpts_to_keep = 5
 cfg.batch_size_per_gpu = 1
-cfg.use_upfirdn_cuda_acceleration = True  # speed up training/inference. WARNING: if set to True,
-                                          # the model will not be valid for inference without cuda (e.g. on CPU)
+cfg.use_upfirdn_cuda_acceleration = (
+    True  # speed up training/inference. WARNING: if set to True, the model will not be valid for
+    # inference without cuda (e.g. on CPU)
+)
+
 
 # OCR
 cfg.aster_weights = osp.join(cfg.working_dir, "aster_weights")

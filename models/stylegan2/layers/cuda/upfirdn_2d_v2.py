@@ -9,7 +9,6 @@ from models.stylegan2.layers.cuda import custom_ops
 from models.stylegan2.utils import apply_conv_in_good_format
 
 
-
 def _get_plugin():
     loc = os.path.dirname(os.path.abspath(__file__))
     cu_fn = "upfirdn_2d.cu"
@@ -62,6 +61,7 @@ def upsample_2d(x, res_h, res_w, pad0, pad1, k, factor=2):
         x, res_h, res_w, k, up_x=factor, up_y=factor, pad0=pad0, pad1=pad1
     )
 
+
 def upsample_conv_2d(x, w_res, h_res, w, pad0, pad1, k, factor=2):
 
     # Check weight shape.
@@ -72,7 +72,6 @@ def upsample_conv_2d(x, w_res, h_res, w, pad0, pad1, k, factor=2):
     inC = tf.shape(w)[2]
     outC = tf.shape(w)[3]
 
-
     num_groups = tf.shape(x)[1] // inC
 
     # Transpose weights.
@@ -80,25 +79,23 @@ def upsample_conv_2d(x, w_res, h_res, w, pad0, pad1, k, factor=2):
     w = tf.transpose(w[::-1, ::-1], [0, 1, 4, 3, 2])
     w = tf.reshape(w, [convH, convW, -1, num_groups * inC])
 
-    output_height= (h_res - 1) * factor + convH
-    output_width=(w_res - 1) * factor + convW
+    output_height = (h_res - 1) * factor + convH
+    output_width = (w_res - 1) * factor + convW
 
     # Execute.
-    output_shape = [
-            tf.shape(x)[0],
-            outC,
-            output_height,
-            output_width
-
-        ] if len(tf.config.list_physical_devices("GPU"))>0 else [
+    output_shape = (
+        [tf.shape(x)[0], outC, output_height, output_width]
+        if len(tf.config.list_physical_devices("GPU")) > 0
+        else [
             tf.shape(x)[0],
             (h_res - 1) * factor + convH,
             (w_res - 1) * factor + convW,
             outC,
-
         ]
+    )
 
-    partial_conv_func = partial( tf.nn.conv2d_transpose,
+    partial_conv_func = partial(
+        tf.nn.conv2d_transpose,
         filters=w,
         output_shape=output_shape,
         padding="VALID",
@@ -112,10 +109,15 @@ def conv_downsample_2d(x, w_res, h_res, w, pad0, pad1, k, reduce_height):
     h_stride = 2 if reduce_height else 1
     w_stride = 2
     x = _simple_upfirdn_2d(x, w_res, h_res, k, pad0=pad0, pad1=pad1)
-    partial_conv_func = partial(tf.nn.conv2d,filters=w, strides=s, padding="VALID")
-    return apply_conv_in_good_format(x, partial_conv_func, h_w_stride=[h_stride, w_stride])
+    partial_conv_func = partial(tf.nn.conv2d, filters=w, strides=s, padding="VALID")
+    return apply_conv_in_good_format(
+        x, partial_conv_func, h_w_stride=[h_stride, w_stride]
+    )
 
-def upfirdn_2d(x, k, upx=1, upy=1, downx=1, downy=1, padx0=0, padx1=0, pady0=0, pady1=0):
+
+def upfirdn_2d(
+    x, k, upx=1, upy=1, downx=1, downy=1, padx0=0, padx1=0, pady0=0, pady1=0
+):
     r"""Pad, upsample, FIR filter, and downsample a batch of 2D images.
     Accepts a batch of 2D images of the shape `[majorDim, inH, inW, minorDim]`
     and performs the following operations for each image, batched across
@@ -146,14 +148,30 @@ def upfirdn_2d(x, k, upx=1, upy=1, downx=1, downy=1, padx0=0, padx1=0, pady0=0, 
         Tensor of the shape `[majorDim, outH, outW, minorDim]`, and same datatype as `x`.
     """
 
-    upfirdn_2d_func = upfirdn_2d_cuda if cfg.use_upfirdn_cuda_acceleration else upfirdn_2d_ref
-    return upfirdn_2d_func(x=x, k=k, upx=upx, upy=upy, downx=downx, downy=downy, padx0=padx0, padx1=padx1, pady0=pady0, pady1=pady1)
+    upfirdn_2d_func = (
+        upfirdn_2d_cuda if cfg.use_upfirdn_cuda_acceleration else upfirdn_2d_ref
+    )
+    return upfirdn_2d_func(
+        x=x,
+        k=k,
+        upx=upx,
+        upy=upy,
+        downx=downx,
+        downy=downy,
+        padx0=padx0,
+        padx1=padx1,
+        pady0=pady0,
+        pady1=pady1,
+    )
 
-def _simple_upfirdn_2d(x, x_res_h, x_res_w, k, up_x=1, up_y=1, down=1, pad0=0, pad1=0, data_format='NCHW'):
-    assert data_format in ['NCHW', 'NHWC']
+
+def _simple_upfirdn_2d(
+    x, x_res_h, x_res_w, k, up_x=1, up_y=1, down=1, pad0=0, pad1=0, data_format="NCHW"
+):
+    assert data_format in ["NCHW", "NHWC"]
     assert x.shape.rank == 4
     y = x
-    if data_format == 'NCHW':
+    if data_format == "NCHW":
         y = tf.reshape(y, [-1, x_res_h, x_res_w, 1])
     y = upfirdn_2d(
         y,
@@ -167,7 +185,7 @@ def _simple_upfirdn_2d(x, x_res_h, x_res_w, k, up_x=1, up_y=1, down=1, pad0=0, p
         pady0=pad0,
         pady1=pad1,
     )
-    if data_format == 'NCHW':
+    if data_format == "NCHW":
         y = tf.reshape(y, [-1, tf.shape(x)[1], tf.shape(y)[1], tf.shape(y)[2]])
     return y
 
@@ -234,6 +252,7 @@ def upfirdn_2d_cuda(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
 
     return func(x)
 
+
 def upfirdn_2d_ref(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
     """Slow reference implementation of `upfirdn_2d()` using standard TensorFlow ops."""
 
@@ -253,16 +272,37 @@ def upfirdn_2d_ref(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
     x = tf.reshape(x, [-1, inH * upy, inW * upx, minorDim])
 
     # Pad (crop if negative).
-    x = tf.pad(x, [[0, 0], [max(pady0, 0), max(pady1, 0)], [max(padx0, 0), max(padx1, 0)], [0, 0]])
-    x = x[:, max(-pady0, 0) : x.shape[1] - max(-pady1, 0), max(-padx0, 0) : x.shape[2] - max(-padx1, 0), :]
+    x = tf.pad(
+        x,
+        [
+            [0, 0],
+            [max(pady0, 0), max(pady1, 0)],
+            [max(padx0, 0), max(padx1, 0)],
+            [0, 0],
+        ],
+    )
+    x = x[
+        :,
+        max(-pady0, 0) : x.shape[1] - max(-pady1, 0),
+        max(-padx0, 0) : x.shape[2] - max(-padx1, 0),
+        :,
+    ]
 
     # Convolve with filter.
     x = tf.transpose(x, [0, 3, 1, 2])
     x = tf.reshape(x, [-1, 1, inH * upy + pady0 + pady1, inW * upx + padx0 + padx1])
     w = tf.constant(k[::-1, ::-1, np.newaxis, np.newaxis], dtype=x.dtype)
-    x = tf.nn.conv2d(x, w, strides=[1,1,1,1], padding='VALID', data_format='NCHW')
+    x = tf.nn.conv2d(x, w, strides=[1, 1, 1, 1], padding="VALID", data_format="NCHW")
 
-    x = tf.reshape(x, [-1, minorDim, inH * upy + pady0 + pady1 - kernelH + 1, inW * upx + padx0 + padx1 - kernelW + 1])
+    x = tf.reshape(
+        x,
+        [
+            -1,
+            minorDim,
+            inH * upy + pady0 + pady1 - kernelH + 1,
+            inW * upx + padx0 + padx1 - kernelW + 1,
+        ],
+    )
     x = tf.transpose(x, [0, 2, 3, 1])
 
     # Downsample (throw away pixels).
