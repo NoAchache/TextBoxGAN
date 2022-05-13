@@ -1,3 +1,5 @@
+from functools import partial
+
 import tensorflow as tf
 
 from models.stylegan2.layers.commons import compute_runtime_coef
@@ -5,6 +7,7 @@ from models.stylegan2.layers.cuda.upfirdn_2d_v2 import (
     conv_downsample_2d,
     compute_paddings,
 )
+from models.stylegan2.utils import apply_conv_in_good_format
 
 
 class Conv2D(tf.keras.layers.Layer):
@@ -65,9 +68,11 @@ class Conv2D(tf.keras.layers.Layer):
             )
 
         else:
-            x = tf.nn.conv2d(
-                x, w, data_format="NCHW", strides=[1, 1, 1, 1], padding="SAME"
+            partial_conv_func = partial(tf.nn.conv2d,
+                filters=w, padding="SAME"
             )
+            x = apply_conv_in_good_format(x, partial_conv_func, h_w_stride=[1, 1])
+
         return x
 
     def get_config(self):

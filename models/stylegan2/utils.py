@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Callable
 import numpy as np
 import tensorflow as tf
 
@@ -119,6 +119,23 @@ def main():
     merge_batch_images(fake_images, res, rows=4, cols=2)
     return
 
+def apply_conv_in_good_format(x: tf.Tensor, partial_conv_func: Callable, h_w_stride: tuple[int, int])-> tf.Tensor:
+    """
+    NCHW convolution is not implemented on CPU. Hence, if using CPU, transpose the input tensor before and after
+    the convolution, to perform the latter in the NHWC format.
+    Parameters
+    ----------
+    x: input tensor
+    partial_conv_func: convolution function, with all the necessary arguments already provided through functools.partial,
+    except the input tensor, the data_format and stride
+    h_w_stride: stride for the height and width
+
+    """
+    if len(tf.config.list_physical_devices("GPU"))>0:
+        return partial_conv_func(x, data_format="NCHW", strides=[1,1, *h_w_stride])
+    x = tf.transpose(x, [0, 2, 3, 1])
+    x = partial_conv_func(x, data_format="NHWC", strides = [1, *h_w_stride, 1])
+    return tf.transpose(x, [0, 3, 1, 2])
 
 if __name__ == "__main__":
     main()
