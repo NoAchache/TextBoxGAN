@@ -138,10 +138,6 @@ def upfirdn_2d(x, k, upx=1, upy=1, downx=1, downy=1, padx0=0, padx1=0, pady0=0, 
         Tensor of the shape `[majorDim, outH, outW, minorDim]`, and same datatype as `x`.
     """
 
-    impl_dict = {
-        'ref':  upfirdn_2d_ref,
-        'cuda': upfirdn_2d_cuda,
-    }
     upfirdn_2d_func = upfirdn_2d_cuda if cfg.use_upfirdn_cuda_acceleration else upfirdn_2d_ref
     return upfirdn_2d_func(x=x, k=k, upx=upx, upy=upy, downx=downx, downy=downy, padx0=padx0, padx1=padx1, pady0=pady0, pady1=pady1)
 
