@@ -11,7 +11,7 @@ from utils.utils import string_to_main_int_sequence, string_to_aster_int_sequenc
 
 
 class TrainingDataLoader:
-    """ Loads a Tensorflow dataset which is used for training. """
+    """Loads a Tensorflow dataset which is used for training."""
 
     def __init__(self):
         self.return_ocr_image = cfg.ocr_loss_type == "mse"

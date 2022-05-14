@@ -30,7 +30,7 @@ def compute_paddings(resample_kernel, up, down, is_conv, convW=3, factor=2, gain
 
     k = [1] * factor if resample_kernel is None else resample_kernel
     if up:
-        k = _setup_kernel(k) * (gain * (factor ** 2))
+        k = _setup_kernel(k) * (gain * (factor**2))
         if is_conv:
             p = (k.shape[0] - factor) - (convW - 1)
             pad0 = (p + 1) // 2 + factor - 1
@@ -84,23 +84,22 @@ def upsample_conv_2d(x, w_res, h_res, w, pad0, pad1, k, factor=2):
 
     # Execute.
     output_shape = (
-        [tf.shape(x)[0], outC, output_height, output_width]
-        if len(tf.config.list_physical_devices("GPU")) > 0
-        else [
+        [
             tf.shape(x)[0],
-            (h_res - 1) * factor + convH,
-            (w_res - 1) * factor + convW,
+            output_height,
+            output_width,
             outC,
         ]
+        if cfg.cpu_only
+        else [tf.shape(x)[0], outC, output_height, output_width]
     )
 
-    partial_conv_func = partial(
-        tf.nn.conv2d_transpose,
-        filters=w,
-        output_shape=output_shape,
-        padding="VALID",
+    partial_conv_func = partial(tf.nn.conv2d_transpose, output_shape=output_shape)
+
+    x = apply_conv_in_good_format(
+        x, partial_conv_func, filters=w, h_w_stride=(factor, factor), padding="VALID"
     )
-    x = apply_conv_in_good_format(x, partial_conv_func, h_w_stride=[factor, factor])
+
     return _simple_upfirdn_2d(x, output_height, output_width, k, pad0=pad0, pad1=pad1)
 
 
@@ -109,9 +108,8 @@ def conv_downsample_2d(x, w_res, h_res, w, pad0, pad1, k, reduce_height):
     h_stride = 2 if reduce_height else 1
     w_stride = 2
     x = _simple_upfirdn_2d(x, w_res, h_res, k, pad0=pad0, pad1=pad1)
-    partial_conv_func = partial(tf.nn.conv2d, filters=w, strides=s, padding="VALID")
     return apply_conv_in_good_format(
-        x, partial_conv_func, h_w_stride=[h_stride, w_stride]
+        x, tf.nn.conv2d, filters=w, h_w_stride=(h_stride, w_stride), padding="VALID"
     )
 
 
@@ -149,7 +147,7 @@ def upfirdn_2d(
     """
 
     upfirdn_2d_func = (
-        upfirdn_2d_cuda if cfg.use_upfirdn_cuda_acceleration else upfirdn_2d_ref
+        upfirdn_2d_cuda if tf.test.is_built_with_cuda() else upfirdn_2d_ref
     )
     return upfirdn_2d_func(
         x=x,
@@ -292,7 +290,10 @@ def upfirdn_2d_ref(x, k, upx, upy, downx, downy, padx0, padx1, pady0, pady1):
     x = tf.transpose(x, [0, 3, 1, 2])
     x = tf.reshape(x, [-1, 1, inH * upy + pady0 + pady1, inW * upx + padx0 + padx1])
     w = tf.constant(k[::-1, ::-1, np.newaxis, np.newaxis], dtype=x.dtype)
-    x = tf.nn.conv2d(x, w, strides=[1, 1, 1, 1], padding="VALID", data_format="NCHW")
+
+    x = apply_conv_in_good_format(
+        x, tf.nn.conv2d, filters=w, h_w_stride=(1, 1), padding="VALID"
+    )
 
     x = tf.reshape(
         x,

@@ -9,7 +9,7 @@ from utils.utils import generator_output_to_uint8
 
 
 class TensorboardWriter:
-    """ Log data related to the performance of the model on a file which can be visualised on tensorboard. """
+    """Log data related to the performance of the model on a file which can be visualised on tensorboard."""
 
     def __init__(self, log_dir: str):
         self.train_summary_writer = tf.summary.create_file_writer(log_dir)

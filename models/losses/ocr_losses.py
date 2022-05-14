@@ -6,7 +6,7 @@ from config import cfg
 
 
 def softmax_cross_entropy_loss(y_pred: tf.float32, y_true: tf.float32) -> tf.float32:
-    """ Compares the OCR output of the generated image with the ground truth text. """
+    """Compares the OCR output of the generated image with the ground truth text."""
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(y_true, y_pred)
     return tf.reduce_sum(loss) / cfg.batch_size
 

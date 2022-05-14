@@ -8,7 +8,7 @@ from config import cfg
 
 
 class LossTracker(object):
-    """ Tracks the different losses to monitor the performance of the model."""
+    """Tracks the different losses to monitor the performance of the model."""
 
     def __init__(self, loss_names: List[str], print_step=None, log_losses=None):
         self.print_step = print_step

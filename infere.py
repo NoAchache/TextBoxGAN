@@ -24,7 +24,7 @@ from validation_step import ValidationStep
 
 
 class Infere:
-    """ Infere the trained model"""
+    """Infere the trained model"""
 
     def __init__(self):
         self.generator = ModelLoader().load_generator(

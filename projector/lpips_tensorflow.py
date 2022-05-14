@@ -196,8 +196,8 @@ def linear_model(input_image_height, input_image_width):
     inputs, outputs = list(), list()
     for ii, channel in enumerate(vgg_channels):
         name = "lin{}".format(ii)
-        image_height = input_image_height // (2 ** ii)
-        image_width = input_image_width // (2 ** ii)
+        image_height = input_image_height // (2**ii)
+        image_width = input_image_width // (2**ii)
 
         model_input = Input(shape=(channel, image_height, image_width), dtype="float32")
         model_output = Dropout(rate=0.5, dtype="float32")(model_input)
