@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from config import cfg
-from models.stylegan2.layers.cuda import custom_ops
+from models.stylegan2.layers.upfirdn import custom_ops
 from models.stylegan2.utils import apply_conv_in_good_format
 
 
