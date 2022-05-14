@@ -9,64 +9,80 @@ of generating "Words with the same style" using our model_<p>
 
 ## Contents
 
-[Setup](#setup)  
-[Running](#running)  
-[Network](#network)  
-[Datasets](#datasets)  
-[Inference](#inference)  
-[Results](#results)  
-[Projector](#projector)  
-[Conclusion](#conclusion)  
-[Implementation Details](#implementation-details)
+- [Setup](#setup)  
+- [Run](#run)  
+- [Technical Documentation](#technical_documentation)
+  - [Network](#network)  
+  - [Datasets](#datasets)  
+  - [Inference](#inference)  
+  - [Results](#results)  
+  - [Projector](#projector)  
+  - [Conclusion](#conclusion)  
+- [Implementation Details](#implementation-details)
 
 <a name="setup"/>
 
 ## Setup
 
-#### Requirements
+### Requirements
 
-- Docker
-- 1 or more CUDA compatible GPUs (currently the project runs on GPU only)
+- [Docker](https://docs.docker.com/get-docker/) or [Poetry](https://python-poetry.org/docs/)
 
-#### Download the models
+For Training or using the Projector:
+- 1 or more CUDA compatible GPUs (making it work on CPU is in progress)
 
-The following models are available in [google drive]:
+_PS: Inference now works on CPU_
 
-- **trained model**: pretrained model (c.f. the [Results](#results) section for more details on the model). Place this
-  directory in the [experiments](experiments) directory. To use it, replace `EXPERIMENT_NAME = None` with
-  `EXPERIMENT_NAME = "trained model"`, and ensure `cfg.resume_step = 225000` in the [config](config/config.py) file.
-- **aster_weights**: weights of the [ASTER] OCR converted to tf2. Place this directory at the root of the project. Required
-  for training the model, running the projector and inferring the test set.
-- **perceptual_weights**: weights of the perceptual loss, converted from pytorch using a repo of [moono]. Place this
-  directory in the [projector](projector) directory. Required for running the projector.
+### Install with docker
 
-#### Build the docker
+Build the image:
 
 ```bash
 docker build -t textboxgan .
 ```
 
-#### Run the docker
+Run the docker:
 
 ```bash
 docker run --gpus all -it -v `pwd`:/tmp -w /tmp textboxgan bash
 ```
 
-#### Download and make datasets
+### Install with poetry
 
-In the docker, run:
+```bash
+poetry install
+```
+
+### Download datasets / models
+
+#### Download the models
+
+The following models are available in this [google drive]:
+- **trained model**: pretrained model (c.f. the [Results](#results) section for more details on the model). Place this
+  directory in the [experiments](experiments) directory. To use it, replace `EXPERIMENT_NAME = None` with
+  `EXPERIMENT_NAME = "trained model"`, and ensure `cfg.resume_step = 225000` in the [config](config/config.py) file.
+
+Required for training and running the projector:
+- **aster_weights**: weights of the [ASTER] OCR converted to tf2. Place this directory at the root of the project.
+- 
+Required for running the projector:
+- **perceptual_weights**: weights of the perceptual loss, converted from pytorch using a repo of [moono]. Place this
+  directory in the [projector](projector) directory.
+
+
+#### Download and make datasets
 
 ```bash
 make download-and-make-datasets
 ```
 
-<a name="running"/>
+<a name="run"/>
 
-## Running
+## Run
 
 _All the following commands should be run within the docker._
 
-#### Training
+#### Train
 
 Specify all the configs in [config.py](config/config.py).
 
@@ -82,7 +98,7 @@ Generate "Hello" and "World" 20 times:
 poetry run python infere.py --infere_type "chosen_words" --words_to_generate "Hello" "World" --num_inferences 20 --output_dir "/"
 ```
 
-#### Infere the test set
+#### Infer the test set
 
 Get an average over 50 runs (since random vectors are used, the test set result is not constant):
 
@@ -96,9 +112,13 @@ poetry run python infere.py --infere_type "test_set" --num_test_set_run 50
 poetry run python -m projector.projector --target_image_path "path/to/image" --text_on_the_image "ABCDE" --output_dir "/"
 ```
 
+<a name="technical_documentation">
+
+## Technical Documentation
+
 <a name="network"/>
 
-## Network
+### Network
 
 ![network](ReadMe_images/network.png)<p align="center">_Figure 2: Network architecture. The green and brown arrows
 represents the backpropagation of respectively the OCR and GAN losses_<p>
@@ -177,7 +197,7 @@ of the word, since it is easing the task of the Synthesis Network.
 
 <a name="datasets"/>
 
-## Datasets
+### Datasets
 
 The datasets used are composed of:
 
@@ -208,7 +228,7 @@ random vectors are used to generate the style, the output score may vary from on
 
 <a name="inference"/>
 
-## Inference
+### Inference
 
 The weights used for inference are the moving average of the trained weights (denoted as g_clone in the code). Re-using
 the same style vector for generating two different words allows to endow them with the same font and background. The
@@ -217,9 +237,9 @@ text box generated is cropped depending on the word's length (c.f.
 
 <a name="results"/>
 
-## Results
+### Results
 
-### Comparing different training strategies
+#### Comparing different training strategies
 
 ![losses comparison](ReadMe_images/losses_comparison.png)<p align="center">_Figure 5.a: Losses tracked during 100K steps, with a batch of 4,
 for different training strategies. The OCR loss is consistently the Softmax Crossentropy loss, regardless of the loss used for training._<p>
@@ -246,7 +266,7 @@ selecting the input word from the corpus dataset with a 0.25 probability is pref
 ![swapping labels](ReadMe_images/swapping_labels.png)<p align="center">_Figure 6: Emphasizing the importance of using
 the corpus dataset_<p>
 
-### Training the final model
+#### Training the final model
 
 Following the above observation, the network was trained on 225K steps, with a batch of 16, with the Softmax
 Crossentropy loss (OCR loss) and using input words from the corpus dataset with a 0.25 probability.
@@ -274,7 +294,7 @@ conclusion:
 
 <a name="projector"/>
 
-## Projector
+### Projector
 
 The projector extracts the style from a text box to generate new words with the same style
 [(code)](projector/projector.py). To do so, the latent vector responsible for the style of the image is trained using
@@ -289,7 +309,7 @@ to the original images, and the three others to words generated using the style 
 
 <a name="conclusion"/>
 
-## Conclusion
+### Conclusion
 
 TextBoxGAN can generate readable text boxes corresponding from an input word, with various styles.
 However, from the limitations stated above, it can be deduced that an OCR will not generalise enough if trained only
@@ -298,7 +318,7 @@ be more appropriate for data augmentation, i.e. training with a mix of generated
 risk of creating a bias towards certain characters shapes. However, considering that, at least to our knowledge, it is
 the first attempt to generate text boxes with a GAN, the results obtained are very satisfying.
 
-### Areas for improvement
+#### Areas for improvement
 
 To attempt to overcome some of the limitations identified for our model, the following ideas could be implemented:
 
