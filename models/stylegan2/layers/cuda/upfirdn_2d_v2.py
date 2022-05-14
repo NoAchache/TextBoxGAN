@@ -164,13 +164,11 @@ def upfirdn_2d(
 
 
 def _simple_upfirdn_2d(
-    x, x_res_h, x_res_w, k, up_x=1, up_y=1, down=1, pad0=0, pad1=0, data_format="NCHW"
+    x, x_res_h, x_res_w, k, up_x=1, up_y=1, down=1, pad0=0, pad1=0
 ):
-    assert data_format in ["NCHW", "NHWC"]
     assert x.shape.rank == 4
     y = x
-    if data_format == "NCHW":
-        y = tf.reshape(y, [-1, x_res_h, x_res_w, 1])
+    y = tf.reshape(y, [-1, x_res_h, x_res_w, 1])
     y = upfirdn_2d(
         y,
         k,
@@ -183,8 +181,7 @@ def _simple_upfirdn_2d(
         pady0=pad0,
         pady1=pad1,
     )
-    if data_format == "NCHW":
-        y = tf.reshape(y, [-1, tf.shape(x)[1], tf.shape(y)[1], tf.shape(y)[2]])
+    y = tf.reshape(y, [-1, tf.shape(x)[1], tf.shape(y)[1], tf.shape(y)[2]])
     return y
 
 
