@@ -2,6 +2,7 @@ from functools import partial
 
 import tensorflow as tf
 
+from config import cfg
 from models.stylegan2.layers.commons import compute_runtime_coef
 from models.stylegan2.layers.dense import Dense
 from models.stylegan2.layers.bias_act import BiasAct
@@ -35,7 +36,9 @@ class ModulatedConv2D(tf.keras.layers.Layer):
         self.kernel_shape = kernel_shape
         self.demodulate = demodulate
         self.up = up
-        self.fused_modconv = fused_modconv
+        self.fused_modconv = (
+            fused_modconv and not cfg.cpu_only
+        )  # fused_modconv is used to accelerate processing using grouped convolutions. Does not work on CPU
         self.in_h_res = in_h_res
         self.in_w_res = in_w_res
         self.gain = gain
@@ -104,8 +107,9 @@ class ModulatedConv2D(tf.keras.layers.Layer):
                 self.k,
             )
         else:
-            partial_conv_func = partial(tf.nn.conv2d, filters=w, padding="SAME")
-            x = apply_conv_in_good_format(x, partial_conv_func, h_w_stride=[1, 1])
+            x = apply_conv_in_good_format(
+                x, tf.nn.conv2d, filters=w, h_w_stride=(1, 1), padding="SAME"
+            )
 
         # Reshape/scale output
         if self.fused_modconv:

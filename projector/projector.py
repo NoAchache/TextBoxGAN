@@ -30,7 +30,7 @@ from utils.utils import string_to_main_int_sequence, string_to_aster_int_sequenc
 
 
 class Projector:
-    """ Projects a text box to find the latent vector responsible for its style. """
+    """Projects a text box to find the latent vector responsible for its style."""
 
     def __init__(self, text_of_the_image):
         self.text_of_the_image = text_of_the_image

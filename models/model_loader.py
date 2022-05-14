@@ -8,7 +8,7 @@ from models.stylegan2.generator import Generator
 
 
 class ModelLoader:
-    """ Loads the different sub models. """
+    """Loads the different sub models."""
 
     def initiate_models(self) -> Tuple[tf.keras.Model, tf.keras.Model, tf.keras.Model]:
         discriminator = self._load_discriminator()
