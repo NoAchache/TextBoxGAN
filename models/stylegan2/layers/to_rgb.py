@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from models.stylegan2.layers.modulated_conv2d import ModulatedConv2D
 from models.stylegan2.layers.bias_act import BiasAct
+from models.stylegan2.layers.modulated_conv2d import ModulatedConv2D
 
 
 class ToRGB(tf.keras.layers.Layer):

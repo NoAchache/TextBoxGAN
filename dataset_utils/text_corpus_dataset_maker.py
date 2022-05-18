@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Generator
+from typing import Dict, Generator, List
 
 import numpy as np
 from tqdm import tqdm

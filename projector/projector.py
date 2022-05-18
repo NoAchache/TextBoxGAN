@@ -26,7 +26,8 @@ from models.losses.ocr_losses import softmax_cross_entropy_loss
 from models.model_loader import ModelLoader
 from projector.lpips_tensorflow import learned_perceptual_metric_model
 from utils.loss_tracker import LossTracker
-from utils.utils import string_to_main_int_sequence, string_to_aster_int_sequence
+from utils.utils import (string_to_aster_int_sequence,
+                         string_to_main_int_sequence)
 
 
 class Projector:
