@@ -137,6 +137,7 @@ cfg.generator_feat_maps[0] = generator_initial_feat_maps
 cfg.num_workers = tf.data.experimental.AUTOTUNE
 cfg.strategy = tf.distribute.MirroredStrategy()
 cfg.batch_size = cfg.batch_size_per_gpu * cfg.strategy.num_replicas_in_sync
+cfg.cpu_only = len(tf.config.list_physical_devices("GPU")) == 0
 
 
 assert (

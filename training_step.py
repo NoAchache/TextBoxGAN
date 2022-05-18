@@ -12,7 +12,7 @@ from utils.utils import mask_text_box
 
 
 class TrainingStep:
-    """ Infere the model, computes the associated losses and backpropagates them. """
+    """Infere the model, computes the associated losses and backpropagates them."""
 
     def __init__(
         self,
@@ -233,7 +233,7 @@ class TrainingStep:
         loss: tf.float32,
         optimizer: tf.keras.optimizers.Adam,
     ) -> None:
-        """ Backpropagates the gradient of the loss into the given networks"""
+        """Backpropagates the gradient of the loss into the given networks"""
 
         trainable_variables = sum([model.trainable_variables for model in models], [])
         gradients = tape.gradient(loss, trainable_variables)

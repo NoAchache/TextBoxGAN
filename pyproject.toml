@@ -7,7 +7,7 @@ authors = ["Noe Achache <noe.achache@gmail.com>", "Antoine Eudes <antoine.eudes@
 [tool.poetry.dependencies]
 python = "3.9.12"
 tensorflow_addons = "^0.16.1"
-tensorflow-macos = {version = "^2.8.0", markers = "platform_machine == 'arm64'"}
+tensorflow-macos = {version = "^2.8.0", markers = "platform_machine == 'arm64' and platform_system == 'Darwin'"} # mac m1
 tensorflow = {version = "^2.8.0", markers = "platform_machine == 'x86_64'"}
 numpy = "^1.22.3"
 tqdm = "^4.64.0"

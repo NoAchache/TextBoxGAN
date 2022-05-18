@@ -8,7 +8,7 @@ from utils.utils import mask_text_box
 
 
 class ValidationStep:
-    """ Inference class to compute the loss on images generated from input text words in order to validate the model. """
+    """Inference class to compute the loss on images generated from input text words in order to validate the model."""
 
     def __init__(
         self,
