@@ -17,7 +17,23 @@ opencv-python = "^4.5.5"
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
 pytest-cov = "^3.0.0"
+black = "^22.3.0"
+isort = "^5.10.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+branch = true
+omit = [
+"*/init.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+"from * import",
+"import *"
+]
+fail_under = 0.00 # Add tests
+precision = 2
