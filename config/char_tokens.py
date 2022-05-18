@@ -1,6 +1,5 @@
 from tensorflow.keras.preprocessing.text import Tokenizer
 
-
 # Characters available in our model
 MAIN_CHAR_VECTOR = (
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-'.!?,\""

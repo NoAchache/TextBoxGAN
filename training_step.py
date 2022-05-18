@@ -1,11 +1,12 @@
-from typing import Tuple, List
+from typing import List, Tuple
 
 import tensorflow as tf
 
 from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
-from models.losses.gan_losses import generator_loss, discriminator_loss
-from models.losses.ocr_losses import mean_squared_loss, softmax_cross_entropy_loss
+from models.losses.gan_losses import discriminator_loss, generator_loss
+from models.losses.ocr_losses import (mean_squared_loss,
+                                      softmax_cross_entropy_loss)
 from models.stylegan2.discriminator import Discriminator
 from models.stylegan2.generator import Generator
 from utils.utils import mask_text_box

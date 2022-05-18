@@ -7,14 +7,16 @@
 """TensorFlow custom ops builder.
 """
 
+import hashlib
 import os
 import re
-import uuid
-import hashlib
-import tempfile
 import shutil
+import tempfile
+import uuid
+
 import tensorflow as tf
-from tensorflow.python.client import device_lib  # pylint: disable=no-name-in-module
+from tensorflow.python.client import \
+    device_lib  # pylint: disable=no-name-in-module
 
 # ----------------------------------------------------------------------------
 # Global options.
