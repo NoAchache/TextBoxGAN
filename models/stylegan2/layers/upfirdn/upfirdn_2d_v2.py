@@ -163,9 +163,7 @@ def upfirdn_2d(
     )
 
 
-def _simple_upfirdn_2d(
-    x, x_res_h, x_res_w, k, up_x=1, up_y=1, down=1, pad0=0, pad1=0
-):
+def _simple_upfirdn_2d(x, x_res_h, x_res_w, k, up_x=1, up_y=1, down=1, pad0=0, pad1=0):
     assert x.shape.rank == 4
     y = x
     y = tf.reshape(y, [-1, x_res_h, x_res_w, 1])
