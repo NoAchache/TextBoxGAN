@@ -25,7 +25,7 @@ download-image-datasets:
 	wget http://datasets.cvc.uab.es/rrc/ch8_training_word_images_gt_part_1.zip && \
 	wget http://datasets.cvc.uab.es/rrc/ch8_training_word_images_gt_part_2.zip && \
 	wget http://datasets.cvc.uab.es/rrc/ch8_training_word_images_gt_part_3.zip && \
-	wget https://rrc.cvc.uab.es/downloads/ch8_validation_word_images_gt.zip && \
+	wget https://rrc.cvc.uab.es/downloads/ch8_validation_word_images_gt.zip --no-check-certificate && \
 	unzip ch8_training_word_images_gt_part_1.zip -d MLT17_1 && \
 	unzip ch8_training_word_images_gt_part_2.zip -d MLT17_1 && \
 	unzip ch8_training_word_images_gt_part_3.zip -d MLT17_1 && \
