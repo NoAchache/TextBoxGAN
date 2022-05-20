@@ -45,3 +45,7 @@ preview = true
 
 [tool.isort]
 profile = "black"
+
+[tool.pylint.similarities]
+ignore-signatures = "yes"
+ignore-imports = "yes"
