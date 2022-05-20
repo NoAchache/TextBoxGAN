@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from models.stylegan2.layers.bias_act import BiasAct
-from models.stylegan2.layers.conv import Conv2D
+from models.custom_stylegan2.layers.bias_act import BiasAct
+from models.custom_stylegan2.layers.conv import Conv2D
 
 
 class FromRGB(tf.keras.layers.Layer):
