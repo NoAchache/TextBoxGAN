@@ -1,0 +1,32 @@
+name: CI
+
+on: [pull_request]
+
+jobs:
+  CI:
+    runs-on:  ubuntu-18.04
+
+    steps:
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9.12
+        architecture: x64
+
+    - name: Setup poetry
+      uses: Gr1N/setup-poetry@v7
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: poetry install
+
+    - name: Black
+      run: poetry run black . --check
+
+    - name: Isort
+      run: poetry run isort .
+#
+#    - name: Pylint
+#      run: poetry run pylint src --fail-under=10

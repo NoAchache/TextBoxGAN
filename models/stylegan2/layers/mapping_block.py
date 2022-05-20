@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from models.stylegan2.layers.dense import Dense
 from models.stylegan2.layers.bias_act import BiasAct
+from models.stylegan2.layers.dense import Dense
 
 
 class Mapping(tf.keras.layers.Layer):

@@ -15,7 +15,7 @@ from dataset_utils.training_data_loader import TrainingDataLoader
 from dataset_utils.validation_data_loader import ValidationDataLoader
 from models.model_loader import ModelLoader
 from training_step import TrainingStep
-from utils import TensorboardWriter, LossTracker
+from utils import LossTracker, TensorboardWriter
 from validation_step import ValidationStep
 
 

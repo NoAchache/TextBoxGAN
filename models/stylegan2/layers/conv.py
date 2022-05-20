@@ -2,8 +2,8 @@ import tensorflow as tf
 
 from models.stylegan2.layers.commons import compute_runtime_coef
 from models.stylegan2.layers.upfirdn.upfirdn_2d_v2 import (
-    conv_downsample_2d,
     compute_paddings,
+    conv_downsample_2d,
 )
 from models.stylegan2.utils import apply_conv_in_good_format
 
