@@ -37,3 +37,9 @@ exclude_lines = [
 ]
 fail_under = 0.00 # Add tests
 precision = 2
+
+[tool.black]
+preview = true
+
+[tool.isort]
+profile = "black"

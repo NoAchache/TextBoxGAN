@@ -187,7 +187,10 @@ if __name__ == "__main__":
         "--sentence",
         default=False,
         action="store_true",
-        help="whether the generated words should be concatenated in a single box to simulate a sentence",
+        help=(
+            "whether the generated words should be concatenated in a single box to"
+            " simulate a sentence"
+        ),
     )
     args = parser.parse_args()
 
@@ -205,5 +208,6 @@ if __name__ == "__main__":
         infere.infere_test_set(args.num_test_set_run)
     else:
         print(
-            f"infere_type should be 'chosen_words' or 'test_set', not {args.infere_type}"
+            "infere_type should be 'chosen_words' or 'test_set', not"
+            f" {args.infere_type}"
         )
