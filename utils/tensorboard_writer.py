@@ -83,7 +83,8 @@ class TensorboardWriter:
         summary_images = generator_output_to_uint8(height_concat_images)
 
         with self.train_summary_writer.as_default():
-            tf.summary.image("images", summary_images, step=step, description=text_log)
+            tf.summary.image("images", summary_images, step=step)
+            tf.summary.text("words", text_log, step=step)
 
     @tf.function
     def _gen_samples(
