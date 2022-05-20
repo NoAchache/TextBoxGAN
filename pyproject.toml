@@ -49,3 +49,13 @@ profile = "black"
 [tool.pylint.similarities]
 ignore-signatures = "yes"
 ignore-imports = "yes"
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-module-docstring",
+]
+
+[tool.pylint.basic]
+extension-pkg-allow-list = ["cv2"]
+max-line-length=110
+no-docstring-rgx = "^call|^__init__"
