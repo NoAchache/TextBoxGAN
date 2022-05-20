@@ -15,8 +15,7 @@ import tempfile
 import uuid
 
 import tensorflow as tf
-from tensorflow.python.client import \
-    device_lib  # pylint: disable=no-name-in-module
+from tensorflow.python.client import device_lib  # pylint: disable=no-name-in-module
 
 # ----------------------------------------------------------------------------
 # Global options.

@@ -5,8 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from config import cfg
-from utils.utils import (string_to_aster_int_sequence,
-                         string_to_main_int_sequence)
+from utils.utils import string_to_aster_int_sequence, string_to_main_int_sequence
 
 
 class ValidationDataLoader:
