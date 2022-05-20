@@ -1,11 +1,11 @@
 import tensorflow as tf
 
 from config import cfg
-from models.stylegan2.layers.bias_act import BiasAct
-from models.stylegan2.layers.conv import Conv2D
-from models.stylegan2.layers.dense import Dense
-from models.stylegan2.layers.from_rgb import FromRGB
-from models.stylegan2.layers.mini_batch_std import MinibatchStd
+from models.custom_stylegan2.layers.bias_act import BiasAct
+from models.custom_stylegan2.layers.conv import Conv2D
+from models.custom_stylegan2.layers.dense import Dense
+from models.custom_stylegan2.layers.from_rgb import FromRGB
+from models.custom_stylegan2.layers.mini_batch_std import MinibatchStd
 
 
 class DiscriminatorBlock(tf.keras.layers.Layer):

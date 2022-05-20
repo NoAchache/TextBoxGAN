@@ -4,15 +4,15 @@ import tensorflow as tf
 
 from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
+from models.custom_stylegan2.discriminator import Discriminator
+from models.custom_stylegan2.generator import Generator
 from models.losses.gan_losses import discriminator_loss, generator_loss
 from models.losses.ocr_losses import mean_squared_loss, softmax_cross_entropy_loss
-from models.stylegan2.discriminator import Discriminator
-from models.stylegan2.generator import Generator
 from utils.utils import mask_text_box
 
 
 class TrainingStep:
-    """Infere the model, computes the associated losses and backpropagates them."""
+    """Infer the model, computes the associated losses and backpropagates them."""
 
     def __init__(
         self,
@@ -354,7 +354,7 @@ class TrainingStep:
 
     def _r1_reg(self, real_images: tf.float32) -> Tuple["tf.float32", "tf.float32"]:
         """
-        Infere the discriminator and computes the R1 regression.
+        Infer the discriminator and computes the R1 regression.
 
         Parameters
         ----------

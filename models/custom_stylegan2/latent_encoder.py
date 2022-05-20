@@ -1,8 +1,8 @@
 import tensorflow as tf
 
 from config import cfg
-from models.stylegan2.layers.mapping_block import Mapping
-from models.stylegan2.utils import lerp
+from models.custom_stylegan2.layers.mapping_block import Mapping
+from models.custom_stylegan2.utils import lerp
 
 
 class LatentEncoder(tf.keras.Model):
