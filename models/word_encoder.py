@@ -1,9 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras.layers import (
-    Dense,
-    Dropout,
-    ReLU,
-)
+from tensorflow.keras.layers import Dense, Dropout, ReLU
 
 from config import cfg
 
