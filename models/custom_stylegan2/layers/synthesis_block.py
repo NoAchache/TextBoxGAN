@@ -1,11 +1,14 @@
 import tensorflow as tf
 
 from config import cfg
-from models.stylegan2.layers.bias_act import BiasAct
-from models.stylegan2.layers.modulated_conv2d import ModulatedConv2D
-from models.stylegan2.layers.noise import Noise
-from models.stylegan2.layers.to_rgb import ToRGB
-from models.stylegan2.layers.upfirdn.upfirdn_2d_v2 import compute_paddings, upsample_2d
+from models.custom_stylegan2.layers.bias_act import BiasAct
+from models.custom_stylegan2.layers.modulated_conv2d import ModulatedConv2D
+from models.custom_stylegan2.layers.noise import Noise
+from models.custom_stylegan2.layers.to_rgb import ToRGB
+from models.custom_stylegan2.layers.upfirdn.upfirdn_2d_v2 import (
+    compute_paddings,
+    upsample_2d,
+)
 
 
 class SynthesisBlock(tf.keras.layers.Layer):

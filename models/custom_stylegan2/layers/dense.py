@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from models.stylegan2.layers.commons import compute_runtime_coef
+from models.custom_stylegan2.layers.commons import compute_runtime_coef
 
 
 class Dense(tf.keras.layers.Layer):

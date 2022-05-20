@@ -5,8 +5,8 @@ import numpy as np
 import tensorflow as tf
 
 from config import cfg
-from models.stylegan2.layers.upfirdn import custom_ops
-from models.stylegan2.utils import apply_conv_in_good_format
+from models.custom_stylegan2.layers.upfirdn import custom_ops
+from models.custom_stylegan2.utils import apply_conv_in_good_format
 
 
 def _get_plugin():
