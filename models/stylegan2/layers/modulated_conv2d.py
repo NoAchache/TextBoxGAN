@@ -6,8 +6,10 @@ from config import cfg
 from models.stylegan2.layers.bias_act import BiasAct
 from models.stylegan2.layers.commons import compute_runtime_coef
 from models.stylegan2.layers.dense import Dense
-from models.stylegan2.layers.upfirdn.upfirdn_2d_v2 import (compute_paddings,
-                                                           upsample_conv_2d)
+from models.stylegan2.layers.upfirdn.upfirdn_2d_v2 import (
+    compute_paddings,
+    upsample_conv_2d,
+)
 from models.stylegan2.utils import apply_conv_in_good_format
 
 
