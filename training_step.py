@@ -12,7 +12,7 @@ from utils.utils import mask_text_box
 
 
 class TrainingStep:
-    """Infere the model, computes the associated losses and backpropagates them."""
+    """Infer the model, computes the associated losses and backpropagates them."""
 
     def __init__(
         self,
@@ -354,7 +354,7 @@ class TrainingStep:
 
     def _r1_reg(self, real_images: tf.float32) -> Tuple["tf.float32", "tf.float32"]:
         """
-        Infere the discriminator and computes the R1 regression.
+        Infer the discriminator and computes the R1 regression.
 
         Parameters
         ----------
