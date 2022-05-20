@@ -10,15 +10,15 @@ class AsterInferer(tf.keras.Model):
 
     Parameters
     ----------
-    combine_forward_and_backward: uses a combination of the forward and back predictions if set to True. Only uses
-    the forward prediction if set to False. The pre-trained model gives better results when
-    combine_forward_and_backward=False
+    combine_forward_and_backward: uses a combination of the forward and back predictions if set
+    to True. Only uses the forward prediction if set to False. The pre-trained model gives better
+     results when combine_forward_and_backward=False
 
     """
 
     def __init__(self, combine_forward_and_backward=False):
 
-        super(AsterInferer, self).__init__()
+        super().__init__()
         self.combine_forward_and_backward = combine_forward_and_backward
         tfa.register_all(custom_kernels=False)
         self.model = tf.saved_model.load(cfg.aster_weights, tags="serve").signatures[

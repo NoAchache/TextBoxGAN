@@ -23,7 +23,6 @@ def infer_images(aster, images_dir):
     for image_name in os.listdir(images_dir):
         image_path = os.path.join(image_name, image_name)
         image = cv2.imread(image_path)
-        h, w, _ = image.shape
 
         ocr_image = cv2.resize(
             image, (cfg.aster_image_dims[1], cfg.aster_image_dims[0])
@@ -43,5 +42,5 @@ def infer_images(aster, images_dir):
 
 
 if __name__ == "__main__":
-    aster = AsterInferer()
-    infer_images(aster, IMAGES_DIR)
+    aster_model = AsterInferer()
+    infer_images(aster_model, IMAGES_DIR)
