@@ -7,7 +7,7 @@ class MinibatchStd(tf.keras.layers.Layer):
         self.group_size = group_size
         self.num_new_features = num_new_features
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         s = tf.shape(inputs)
         group_size = tf.minimum(self.group_size, s[0])
 

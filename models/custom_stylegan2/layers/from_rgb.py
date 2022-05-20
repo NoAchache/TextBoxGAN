@@ -23,7 +23,7 @@ class FromRGB(tf.keras.layers.Layer):
         )
         self.apply_bias_act = BiasAct(lrmul=1.0, act="lrelu", name="bias")
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         y = self.conv(inputs)
         y = self.apply_bias_act(y)
         return y

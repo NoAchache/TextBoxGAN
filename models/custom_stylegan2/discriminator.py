@@ -65,7 +65,7 @@ class DiscriminatorBlock(tf.keras.layers.Layer):
             in_w_res=self.in_w_res,
         )
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         x = inputs
         residual = x
 
@@ -129,7 +129,7 @@ class DiscriminatorLastBlock(tf.keras.layers.Layer):
         )
         self.apply_bias_act_1 = BiasAct(lrmul=self.lrmul, act="lrelu", name="bias_1")
 
-    def call(self, x, training=None, mask=None):
+    def call(self, x):
         x = self.minibatch_std(x)
 
         # conv_0
@@ -199,7 +199,7 @@ class Discriminator(tf.keras.Model):
         self.last_dense = Dense(1, gain=1.0, lrmul=1.0, name="last_dense")
         self.last_bias = BiasAct(lrmul=1.0, act="linear", name="last_bias")
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         images = inputs
 
         x = self.initial_fromrgb(images)
