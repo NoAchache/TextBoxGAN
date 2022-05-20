@@ -9,15 +9,15 @@ of generating "Words with the same style" using our model_<p>
 
 ## Contents
 
-- [Setup](#setup)  
-- [Run](#run)  
+- [Setup](#setup)
+- [Run](#run)
 - [Technical Documentation](#technical_documentation)
-  - [Network](#network)  
-  - [Datasets](#datasets)  
-  - [Inference](#inference)  
-  - [Results](#results)  
-  - [Projector](#projector)  
-  - [Conclusion](#conclusion)  
+  - [Network](#network)
+  - [Datasets](#datasets)
+  - [Inference](#inference)
+  - [Results](#results)
+  - [Projector](#projector)
+  - [Conclusion](#conclusion)
 - [Implementation Details](#implementation-details)
 
 <a name="setup"/>
@@ -95,7 +95,7 @@ poetry run python train.py
 Generate "Hello" and "World" 20 times:
 
 ```bash
-poetry run python infere.py --infere_type "chosen_words" --words_to_generate "Hello" "World" --num_inferences 20 --output_dir "/"
+poetry run python infer.py --infer_type "chosen_words" --words_to_generate "Hello" "World" --num_inferences 20 --output_dir "/"
 ```
 
 #### Infer the test set
@@ -103,7 +103,7 @@ poetry run python infere.py --infere_type "chosen_words" --words_to_generate "He
 Get an average over 50 runs (since random vectors are used, the test set result is not constant):
 
 ```bash
-poetry run python infere.py --infere_type "test_set" --num_test_set_run 50
+poetry run python infer.py --infer_type "test_set" --num_test_set_run 50
 ```
 
 #### Run the projector

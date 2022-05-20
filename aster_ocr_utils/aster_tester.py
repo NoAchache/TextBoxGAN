@@ -12,12 +12,12 @@ IMAGES_DIR = ""
 
 def infer_images(aster, images_dir):
     """
-    Infere images in the Aster OCR to see how it performs on them.
+    Infer images in the Aster OCR to see how it performs on them.
 
     Parameters
     ----------
     aster: pre-trained OCR.
-    images_dir: Directory containing the images to infere
+    images_dir: Directory containing the images to infer
 
     """
     for image_name in os.listdir(images_dir):
