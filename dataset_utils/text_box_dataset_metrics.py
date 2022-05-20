@@ -42,11 +42,12 @@ def compute_metrics():
 
     for key in sizes_info.keys():
         print(
-            f"Labels of {key} length appear {len(sizes_info[key][f'width{key}'])} in the dataset\n"
+            f"Labels of {key} length appear {len(sizes_info[key][f'width{key}'])} in"
+            " the dataset\n"
             f"The mean ratio of w/h is {np.mean(sizes_info[key][f'ratios{key}'])}\n"
             f"The mean width is {np.mean(sizes_info[key][f'width{key}'])}\n"
             f"The mean height is {np.mean(sizes_info[key][f'height{key}'])}\n"
-            f"-------------------------------------------------------------"
+            "-------------------------------------------------------------"
         )
 
     for char, num_appearance in chars_info.items():

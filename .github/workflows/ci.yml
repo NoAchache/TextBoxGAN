@@ -26,7 +26,7 @@ jobs:
       run: poetry run black . --check
 
     - name: Isort
-      run: poetry run isort src
+      run: poetry run isort .
 #
 #    - name: Pylint
 #      run: poetry run pylint src --fail-under=10

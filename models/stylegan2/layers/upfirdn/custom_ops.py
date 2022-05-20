@@ -26,8 +26,10 @@ do_not_hash_included_headers = False  # Speed up compilation by assuming that he
 verbose = True  # Print status messages to stdout.
 
 compiler_bindir_search_path = [
-    "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.14.26428/bin/Hostx64/x64",
-    "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.23.28105/bin/Hostx64/x64",
+    "C:/Program Files (x86)/Microsoft Visual"
+    " Studio/2017/Community/VC/Tools/MSVC/14.14.26428/bin/Hostx64/x64",
+    "C:/Program Files (x86)/Microsoft Visual"
+    " Studio/2019/Community/VC/Tools/MSVC/14.23.28105/bin/Hostx64/x64",
     "C:/Program Files (x86)/Microsoft Visual Studio 14.0/vc/bin",
 ]
 
@@ -64,8 +66,8 @@ def _run_cmd(cmd):
         status = pipe.close()
     if status is not None:
         raise RuntimeError(
-            "NVCC returned an error. See below for full command line and output log:\n\n%s\n\n%s"
-            % (cmd, output)
+            "NVCC returned an error. See below for full command line and output"
+            " log:\n\n%s\n\n%s" % (cmd, output)
         )
 
 
@@ -89,8 +91,8 @@ def _prepare_nvcc_cli(opts):
         # nvcc to use whatever is the default on Linux.
         if os.name == "nt":
             raise RuntimeError(
-                'Could not find MSVC/GCC/CLANG installation on this computer. Check compiler_bindir_search_path list in "%s".'
-                % __file__
+                "Could not find MSVC/GCC/CLANG installation on this computer. Check"
+                ' compiler_bindir_search_path list in "%s".' % __file__
             )
     else:
         cmd += ' --compiler-bindir "%s"' % compiler_bindir
