@@ -3,8 +3,8 @@ from typing import Tuple
 import tensorflow as tf
 
 from config import cfg
-from models.stylegan2.discriminator import Discriminator
-from models.stylegan2.generator import Generator
+from models.custom_stylegan2.discriminator import Discriminator
+from models.custom_stylegan2.generator import Generator
 
 
 class ModelLoader:

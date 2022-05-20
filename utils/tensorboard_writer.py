@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
-from models.stylegan2.generator import Generator
+from models.custom_stylegan2.generator import Generator
 from utils.utils import generator_output_to_uint8
 
 

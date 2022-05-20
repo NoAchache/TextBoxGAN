@@ -9,15 +9,15 @@ of generating "Words with the same style" using our model_<p>
 
 ## Contents
 
-- [Setup](#setup)  
-- [Run](#run)  
+- [Setup](#setup)
+- [Run](#run)
 - [Technical Documentation](#technical_documentation)
-  - [Network](#network)  
-  - [Datasets](#datasets)  
-  - [Inference](#inference)  
-  - [Results](#results)  
-  - [Projector](#projector)  
-  - [Conclusion](#conclusion)  
+  - [Network](#network)
+  - [Datasets](#datasets)
+  - [Inference](#inference)
+  - [Results](#results)
+  - [Projector](#projector)
+  - [Conclusion](#conclusion)
 - [Implementation Details](#implementation-details)
 
 <a name="setup"/>
@@ -95,7 +95,7 @@ poetry run python train.py
 Generate "Hello" and "World" 20 times:
 
 ```bash
-poetry run python infere.py --infere_type "chosen_words" --words_to_generate "Hello" "World" --num_inferences 20 --output_dir "/"
+poetry run python infer.py --infer_type "chosen_words" --words_to_generate "Hello" "World" --num_inferences 20 --output_dir "/"
 ```
 
 #### Infer the test set
@@ -103,7 +103,7 @@ poetry run python infere.py --infere_type "chosen_words" --words_to_generate "He
 Get an average over 50 runs (since random vectors are used, the test set result is not constant):
 
 ```bash
-poetry run python infere.py --infere_type "test_set" --num_test_set_run 50
+poetry run python infer.py --infer_type "test_set" --num_test_set_run 50
 ```
 
 #### Run the projector
@@ -140,14 +140,14 @@ described in _Figure 3_. In the code,
 the integer sequence representing the word is 0 padded in the data loader , and the corresponding embedding
 is filled with 0s.
 
-**Latent Encoder [(code)](models/stylegan2/latent_encoder.py)** _(Refer to the [StyleGan2] paper for more information)_
+**Latent Encoder [(code)](models/custom_stylegan2/latent_encoder.py)** _(Refer to the [StyleGan2] paper for more information)_
 **:** Generates the style of the image by encoding the noise vector through _n_mapping_ dense layers,
 leading to a tensor of size _(batch_size, style_dim)_ where _style_dim_ is usually equal to _z_dim_. The resulting
 tensor is duplicated _n_style_ times, where _n_style_ is equal to the number of layers in the Synthesis Network.
 During training, a second style vector is generated and is mixed with the first one to broaden the distribution of the
 generated images. During evaluation, the style vector can be truncated to vary its intensity.
 
-**Synthesis Network [(code)](models/stylegan2/layers/synthesis_block.py)** \*(Refer to the [StyleGan2] paper for more
+**Synthesis Network [(code)](models/custom_stylegan2/layers/synthesis_block.py)** \*(Refer to the [StyleGan2] paper for more
 information)**\*:** Synthesises a text box from a word encoded tensor and a style vector. At each layer, the style
 vectors are directly applied on the kernels instead of the image for efficiency purpose. RGB images are generated at
 each upscaling and added up, allowing the network to train better globally (and not only train the final layers).
@@ -162,7 +162,7 @@ beyond N \* _char_width_. This both allows to force the synthesis network to not
 discriminator from using residual noise as a pattern to distinguish from fake and real boxes. Similarly, real text
 boxes are resized and zero padded according to the length of their label.
 
-**Discriminator [(code)](models/stylegan2/discriminator.py)** \*(Refer to the [StyleGan2] paper for more information)**\*:**
+**Discriminator [(code)](models/custom_stylegan2/discriminator.py)** \*(Refer to the [StyleGan2] paper for more information)**\*:**
 Classifies the text boxes into fake or real.
 
 **OCR (ASTER) [(code)](aster_ocr_utils/aster_inferer.py)**: \*(Refer to the [ASTER] paper for more information)**\*:**

@@ -23,8 +23,8 @@ from utils.utils import generator_output_to_uint8, string_to_main_int_sequence
 from validation_step import ValidationStep
 
 
-class Infere:
-    """Infere the trained model"""
+class Infer:
+    """Infer the trained model"""
 
     def __init__(self):
         self.generator = ModelLoader().load_generator(
@@ -106,7 +106,7 @@ class Infere:
                     image.numpy()[:, : cfg.char_width * len(word)],
                 )
 
-    def infere_test_set(self, num_test_set_runs):
+    def infer_test_set(self, num_test_set_runs):
         """
         Computes the OCR loss for the test set. Takes an average over several runs to mitigate the bias due to the fact
         random vectors are used.
@@ -142,18 +142,18 @@ class Infere:
 
 if __name__ == "__main__":
 
-    # infere test set
+    # infer test set
     NUM_TEST_SET_RUNS = 100
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--infere_type",
+        "--infer_type",
         type=str,
         required=True,
         help="possible values are 'test_set' or 'chosen_words",
     )
 
-    # If infere_type is 'test_set'
+    # If infer_type is 'test_set'
     parser.add_argument(
         "--num_test_set_run",
         type=int,
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         help="amount of runs of the test set",
     )
 
-    # If infere_type is 'chosen_words'
+    # If infer_type is 'chosen_words'
 
     parser.add_argument(
         "--num_inferences",
@@ -194,20 +194,19 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    infere = Infere()
+    infer = Infer()
 
-    if args.infere_type == "chosen_words":
+    if args.infer_type == "chosen_words":
         for i in range(args.num_inferences):
-            infere.genererate_chosen_words(
+            infer.genererate_chosen_words(
                 args.words_to_generate,
                 str(i),
                 args.output_dir,
                 do_sentence=args.sentence,
             )
-    elif args.infere_type == "test_set":
-        infere.infere_test_set(args.num_test_set_run)
+    elif args.infer_type == "test_set":
+        infer.infer_test_set(args.num_test_set_run)
     else:
         print(
-            "infere_type should be 'chosen_words' or 'test_set', not"
-            f" {args.infere_type}"
+            f"infer_type should be 'chosen_words' or 'test_set', not {args.infer_type}"
         )

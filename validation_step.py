@@ -2,8 +2,8 @@ import tensorflow as tf
 
 from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
+from models.custom_stylegan2.generator import Generator
 from models.losses.ocr_losses import softmax_cross_entropy_loss
-from models.stylegan2.generator import Generator
 from utils.utils import mask_text_box
 
 

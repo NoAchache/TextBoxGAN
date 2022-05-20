@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
-from infere import Infere
+from infer import Infer
 from models.losses.ocr_losses import softmax_cross_entropy_loss
 from models.model_loader import ModelLoader
 from projector.lpips_tensorflow import learned_perceptual_metric_model
@@ -44,7 +44,7 @@ class Projector:
         self.perceptual_loss = learned_perceptual_metric_model(
             self.char_height, self.image_width, self.vgg_ckpt_fn, self.lin_ckpt_fn
         )
-        self.infere = Infere()
+        self.infer = Infer()
 
         self.aster_ocr = AsterInferer()
         self.generator = ModelLoader().load_generator(
@@ -169,7 +169,7 @@ class Projector:
             if step % self.save_and_log_frequency == 0:
                 saved_latents.append(w_latent_var.numpy())
                 loss_tracker.print_losses(step)
-                self.infere.genererate_chosen_words(
+                self.infer.genererate_chosen_words(
                     [
                         self.text_of_the_image,
                     ],

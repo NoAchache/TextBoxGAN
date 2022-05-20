@@ -1,9 +1,9 @@
 import tensorflow as tf
 
 from config import cfg
-from models.stylegan2.latent_encoder import LatentEncoder
-from models.stylegan2.layers.synthesis_block import Synthesis
-from models.stylegan2.utils import lerp
+from models.custom_stylegan2.latent_encoder import LatentEncoder
+from models.custom_stylegan2.layers.synthesis_block import Synthesis
+from models.custom_stylegan2.utils import lerp
 from models.word_encoder import WordEncoder
 
 
