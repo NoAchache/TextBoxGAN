@@ -59,7 +59,7 @@ class SynthesisBlock(tf.keras.layers.Layer):
         self.apply_noise_1 = Noise(name="noise_1")
         self.apply_bias_act_1 = BiasAct(lrmul=self.lrmul, act="lrelu", name="bias_1")
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         x, w0, w1 = inputs
 
         # conv0 up
@@ -134,7 +134,7 @@ class Synthesis(tf.keras.layers.Layer):
             )
             prev_f_m = f_m
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         x, style = inputs
 
         y = self.initial_torgb([x, style[:, 0]])

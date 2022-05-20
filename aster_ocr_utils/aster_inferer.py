@@ -25,7 +25,7 @@ class AsterInferer(tf.keras.Model):
             "serving_default"
         ]
 
-    def call(self, inputs, training=False, mask=None):
+    def call(self, inputs):
         logits = []
         for i in range(len(inputs)):
             prediction = self.model(inputs[i : i + 1])

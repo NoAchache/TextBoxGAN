@@ -20,7 +20,7 @@ class Dense(tf.keras.layers.Layer):
         w_init = tf.random.normal(shape=weight_shape, mean=0.0, stddev=init_std)
         self.w = tf.Variable(w_init, name="w", trainable=True)
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         weight = self.runtime_coef * self.w
 
         c = tf.reduce_prod(tf.shape(inputs)[1:])

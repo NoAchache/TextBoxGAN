@@ -32,7 +32,7 @@ class Mapping(tf.keras.layers.Layer):
                 BiasAct(lrmul=self.lrmul, act="lrelu", name="bias_{:d}".format(ii))
             )
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
 
         # normalize inputs
         x = self.normalize(inputs)

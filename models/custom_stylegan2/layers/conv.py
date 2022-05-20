@@ -48,7 +48,7 @@ class Conv2D(tf.keras.layers.Layer):
         w_init = tf.random.normal(shape=weight_shape, mean=0.0, stddev=init_std)
         self.w = tf.Variable(w_init, name="w", trainable=True)
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         x = inputs
         w = self.runtime_coef * self.w
 
