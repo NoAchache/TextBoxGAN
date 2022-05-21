@@ -9,7 +9,7 @@ class Noise(tf.keras.layers.Layer):
         w_init = tf.zeros(shape=(), dtype=tf.dtypes.float32)
         self.noise_strength = tf.Variable(w_init, trainable=True, name="w")
 
-    def call(self, inputs, noise=None, training=None, mask=None):
+    def call(self, inputs, noise=None):
         x_shape = tf.shape(inputs)
 
         # noise: [1, 1, x_shape[2], x_shape[3]] or None

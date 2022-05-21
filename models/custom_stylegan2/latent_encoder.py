@@ -83,7 +83,6 @@ class LatentEncoder(tf.keras.Model):
         ret_w_broadcasted=False,
         truncation_psi=1.0,
         training=None,
-        mask=None,
     ):
         latents = inputs
 

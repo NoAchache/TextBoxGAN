@@ -20,6 +20,7 @@ pytest-cov = "^3.0.0"
 black = "^22.3.0"
 isort = "^5.10.1"
 pre-commit = "^2.19.0"
+pylint = "^2.13.9"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -44,3 +45,20 @@ preview = true
 
 [tool.isort]
 profile = "black"
+
+[tool.pylint.similarities]
+ignore-signatures = "yes"
+ignore-imports = "yes"
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-module-docstring",
+    "unexpected-keyword-arg", # too many false positives with tensorflow
+    "no-value-for-parameter", # too many false positives with tensorflow
+]
+
+
+[tool.pylint.basic]
+extension-pkg-allow-list = ["cv2"]
+max-line-length=110
+no-docstring-rgx = "^call|^__init__"

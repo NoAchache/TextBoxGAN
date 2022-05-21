@@ -23,7 +23,6 @@ class Generator(tf.keras.Model):
         ret_style=False,
         truncation_psi=1.0,
         training=None,
-        mask=None,
     ):
         input_words, z_latent = inputs  # ((bs, max_char_number), (bs , z_dim))
 

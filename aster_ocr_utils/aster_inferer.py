@@ -10,22 +10,22 @@ class AsterInferer(tf.keras.Model):
 
     Parameters
     ----------
-    combine_forward_and_backward: uses a combination of the forward and back predictions if set to True. Only uses
-    the forward prediction if set to False. The pre-trained model gives better results when
-    combine_forward_and_backward=False
+    combine_forward_and_backward: uses a combination of the forward and back predictions if set
+    to True. Only uses the forward prediction if set to False. The pre-trained model gives better
+     results when combine_forward_and_backward=False
 
     """
 
     def __init__(self, combine_forward_and_backward=False):
 
-        super(AsterInferer, self).__init__()
+        super().__init__()
         self.combine_forward_and_backward = combine_forward_and_backward
         tfa.register_all(custom_kernels=False)
         self.model = tf.saved_model.load(cfg.aster_weights, tags="serve").signatures[
             "serving_default"
         ]
 
-    def call(self, inputs, training=False, mask=None):
+    def call(self, inputs):
         logits = []
         for i in range(len(inputs)):
             prediction = self.model(inputs[i : i + 1])
@@ -81,8 +81,9 @@ class AsterInferer(tf.keras.Model):
 
         return tf.concat([combined_logits, remaining_logits, padding], axis=1)
 
+    @staticmethod
     def _combine_logits(
-        self, forward_logits: tf.float32, backward_logits: tf.float32
+        forward_logits: tf.float32, backward_logits: tf.float32
     ) -> tf.float32:
         """
         Combine forward and backward logits
@@ -112,7 +113,8 @@ class AsterInferer(tf.keras.Model):
 
         return tf.expand_dims(combined_logits, 0)
 
-    def _postprocess_simple(self, logits: tf.float32) -> tf.float32:
+    @staticmethod
+    def _postprocess_simple(logits: tf.float32) -> tf.float32:
         """
         Postprocess the forward logits.
 

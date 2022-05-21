@@ -36,7 +36,7 @@ class WordEncoder(tf.keras.Model):
             w0_embedding, name="w0_embedding", trainable=False
         )
 
-    def call(self, inputs: tf.int32, batch_size=None, training=None, mask=None):
+    def call(self, inputs: tf.int32, batch_size=None):
 
         input_words = inputs
 
