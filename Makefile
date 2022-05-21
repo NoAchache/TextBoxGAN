@@ -54,7 +54,7 @@ isort:
 #e.g. `make tensorboard xps="xp1 xp2"` to show the logs of xp1 and xp2 in tensorboard
 tensorboard:
 	for xp in $(xps) ; do \
-		concat_xps+=experiments/$$xp,; \
+		concat_xps+=$$xp:experiments/$$xp,; \
 	done;\
 	concat_xps="$${concat_xps%?}";\
 	tensorboard --logdir_spec "$$concat_xps" --samples_per_plugin "text=400,images=400"
