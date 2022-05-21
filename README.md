@@ -55,7 +55,7 @@ poetry install
 
 ### Download datasets / models
 
-#### Download the models
+### Download the models
 
 The following models are available in this [google drive]:
 - **trained model**: pretrained model (c.f. the [Results](#results) section for more details on the model). Place this
@@ -70,7 +70,7 @@ Required for running the projector:
   directory in the [projector](projector) directory.
 
 
-#### Download and make datasets
+### Download and make datasets
 
 ```bash
 make download-and-make-datasets
@@ -82,7 +82,7 @@ make download-and-make-datasets
 
 _All the following commands should be run within the docker._
 
-#### Train
+### Train
 
 Specify all the configs in [config.py](config/config.py).
 
@@ -90,15 +90,15 @@ Specify all the configs in [config.py](config/config.py).
 poetry run python train.py
 ```
 
-#### Generate chosen words
+### Generate chosen words
 
 Generate "Hello" and "World" 20 times:
 
 ```bash
-poetry run python infer.py --infer_type "chosen_words" --words_to_generate "Hello" "World" --num_inferences 20 --output_dir "/"
+poetry run python infer.py --infer_type "chosen_words" --words_to_generate "Hello" "World" --num_inferences 20 --output_dir "<output directory>"
 ```
 
-#### Infer the test set
+### Infer the test set
 
 Get an average over 50 runs (since random vectors are used, the test set result is not constant):
 
@@ -106,13 +106,40 @@ Get an average over 50 runs (since random vectors are used, the test set result 
 poetry run python infer.py --infer_type "test_set" --num_test_set_run 50
 ```
 
-#### Run the projector
+### Run the projector
 
 ```bash
-poetry run python -m projector.projector --target_image_path "path/to/image" --text_on_the_image "ABCDE" --output_dir "/"
+poetry run python -m projector.projector --target_image_path "<path/to/image>" --text_on_the_image "<text on image>" --output_dir "<output directory>"
 ```
 
 <a name="technical_documentation">
+
+### Tensorboard
+
+#### Launch tensorboard
+
+Display the logs of one or several experiments (e.g. xp1 and xp2):
+
+```bash
+make tensorboard xps="xp1 xp2"
+```
+
+If your experiments are stored in a VM (with which you are connected via ssh), add the following alias to
+your bashrc or zshrc:
+
+```bash
+function vm_tensorboard() {ssh -t -L 6006:localhost:6006 <vm adress> 'cd <path/to/your/repo> && make tensorboard xps='\"$1\"''}
+```
+
+You can now access the tensorboard UI locally:
+```bash
+vm_tensorboard "xp1 xp2"
+```
+
+#### Access the UI
+Tensorboard default port is 6006. Hence the UI can be accessed on the following address: `http://localhost:6006/`
+
+
 
 ## Technical Documentation
 
