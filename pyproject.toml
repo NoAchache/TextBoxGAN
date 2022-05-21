@@ -53,7 +53,10 @@ ignore-imports = "yes"
 [tool.pylint.messages_control]
 disable = [
     "missing-module-docstring",
+    "unexpected-keyword-arg", # too many false positives with tensorflow
+    "no-value-for-parameter", # too many false positives with tensorflow
 ]
+
 
 [tool.pylint.basic]
 extension-pkg-allow-list = ["cv2"]
