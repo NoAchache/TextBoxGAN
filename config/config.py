@@ -93,11 +93,11 @@ cfg.d_opt = {
 
 # Logging, Summary, Save
 cfg.summary_steps_frequency = {"print_steps": [50, 500], "log_losses": [False, True]}
-cfg.image_summary_step_frequency = 200
+cfg.image_summary_step_frequency = 500
 
 cfg.num_images_per_log = 3
 cfg.validation_step_frequency = 10000
-cfg.save_step_frequency = 5000
+cfg.save_step_frequency = 10000
 cfg.num_ckpts_to_keep = 5
 cfg.batch_size_per_gpu = 1
 
