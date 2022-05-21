@@ -22,7 +22,7 @@ class BiasAct(tf.keras.layers.Layer):
         b_init = tf.zeros(shape=(input_shape[1],), dtype=tf.dtypes.float32)
         self.b = tf.Variable(b_init, name="b", trainable=True)
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         b = self.lrmul * self.b
 
         if self.len2:

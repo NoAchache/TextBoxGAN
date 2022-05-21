@@ -25,7 +25,7 @@ class ToRGB(tf.keras.layers.Layer):
 
         self.apply_bias = BiasAct(lrmul=1.0, act="linear", name="bias")
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         x, w = inputs
 
         x = self.conv([x, w])
