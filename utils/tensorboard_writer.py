@@ -5,14 +5,16 @@ import tensorflow as tf
 from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
 from models.custom_stylegan2.generator import Generator
-from utils.utils import generator_output_to_uint8
+from utils.utils import generator_output_to_uint8, get_latest_commit_hash
 
 
 class TensorboardWriter:
     """Log data related to the performance of the model on a file which can be visualised on tensorboard."""
 
     def __init__(self, log_dir: str):
-        self.train_summary_writer = tf.summary.create_file_writer(log_dir)
+        self.train_summary_writer = tf.summary.create_file_writer(
+            log_dir, filename_suffix=get_latest_commit_hash()
+        )
         self.num_images_per_log = cfg.num_images_per_log
         self.z_dim = cfg.z_dim
         self.strategy = cfg.strategy

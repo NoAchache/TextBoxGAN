@@ -1,5 +1,6 @@
 from typing import List
 
+import git
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
@@ -102,3 +103,9 @@ def string_to_aster_int_sequence(words_list: List[str]) -> np.ndarray:
     return pad_sequences(
         int_sequence, maxlen=cfg.max_char_number, value=1, padding="post"
     )
+
+
+def get_latest_commit_hash():
+    repo = git.Repo()
+    latest_commit_sha = repo.head.object.hexsha
+    return latest_commit_sha
