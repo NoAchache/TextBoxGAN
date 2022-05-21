@@ -81,8 +81,9 @@ class AsterInferer(tf.keras.Model):
 
         return tf.concat([combined_logits, remaining_logits, padding], axis=1)
 
+    @staticmethod
     def _combine_logits(
-        self, forward_logits: tf.float32, backward_logits: tf.float32
+        forward_logits: tf.float32, backward_logits: tf.float32
     ) -> tf.float32:
         """
         Combine forward and backward logits
@@ -112,7 +113,8 @@ class AsterInferer(tf.keras.Model):
 
         return tf.expand_dims(combined_logits, 0)
 
-    def _postprocess_simple(self, logits: tf.float32) -> tf.float32:
+    @staticmethod
+    def _postprocess_simple(logits: tf.float32) -> tf.float32:
         """
         Postprocess the forward logits.
 
