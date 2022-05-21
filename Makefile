@@ -44,3 +44,17 @@ make-datasets:
 	poetry run python -m dataset_utils.filter_out_bad_images
 
 download-and-make-datasets: create-data-dir download-text-datasets download-image-datasets make-datasets
+
+black:
+	poetry run black .
+
+isort:
+	poetry run isort .
+
+#e.g. `make tensorboard xps="xp1 xp2"` to show the logs of xp1 and xp2 in tensorboard
+tensorboard:
+	for xp in $(xps) ; do \
+		concat_xps+=experiments/$$xp,; \
+	done;\
+	concat_xps="$${concat_xps%?}";\
+	tensorboard --logdir_spec "$$concat_xps" --samples_per_plugin "text=400,images=400"
