@@ -5,6 +5,7 @@ def allow_memory_growth():
     """
     Allows memory growth to move tensors from GPU to CPU when needed, to prevent from OOM errors. This will slow down
     the processing.
+
     """
     gpus = tf.config.experimental.list_physical_devices("GPU")
     if gpus:
