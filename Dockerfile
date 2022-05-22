@@ -1,8 +1,7 @@
 FROM nvidia/cuda:11.2.2-cudnn8-devel-ubuntu18.04
 
-RUN apt-get update
 RUN apt-get upgrade -y
-RUN apt-get install
+RUN apt-get update
 RUN apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
     wget curl llvm libncursesw5-dev xz-utils libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev apt-utils p7zip unzip \
     git
