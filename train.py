@@ -170,6 +170,10 @@ class Trainer(object):
         ]
 
         validation_tracker = LossTracker(["validation_ocr_loss"])
+
+        self.tensorboard_writer.log_config_file(
+            step=self.g_optimizer.iterations.numpy()
+        )
         # start training
         for real_images, ocr_image, input_words, ocr_labels in train_dataset:
             step = self.g_optimizer.iterations.numpy()
@@ -255,7 +259,6 @@ class Trainer(object):
         # save last checkpoint
         step = self.g_optimizer.iterations.numpy()
         self.manager.save(checkpoint_number=step)
-        return
 
 
 if __name__ == "__main__":

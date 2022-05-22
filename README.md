@@ -44,7 +44,7 @@ docker build -t textboxgan .
 Run the docker image:
 
 ```bash
-docker run --gpus all -it -v `pwd`:/tmp -w /tmp textboxgan bash
+docker run --gpus all -it -v `pwd`:/TextBoxGAN textboxgan bash
 ```
 
 ### Install with poetry
