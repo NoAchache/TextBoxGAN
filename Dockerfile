@@ -20,6 +20,7 @@ RUN ln -s /usr/local/bin/python3 /usr/local/bin/python && \
 RUN apt-get install ffmpeg libsm6 libxext6 -y # Required to install open-cv
 
 WORKDIR /TextBoxGAN
+RUN git config --global --add safe.directory /TextBoxGAN
 
 RUN pip install -U pip
 RUN pip install poetry
