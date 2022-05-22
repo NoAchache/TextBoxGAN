@@ -38,7 +38,7 @@ class TensorboardWriter:
     def log_config_file(self, step: int) -> None:
         json_configs = json.dumps(cfg, default=lambda o: str(o), indent=1)
         with self.train_summary_writer.as_default():
-            tf.summary.scalar("configs", json_configs, step=step)
+            tf.summary.text("configs", json_configs, step=step)
 
     def log_images(
         self,
