@@ -1,3 +1,4 @@
+import json
 from typing import Tuple
 
 import tensorflow as tf
@@ -33,6 +34,11 @@ class TensorboardWriter:
         with self.train_summary_writer.as_default():
             for loss_name, metric in loss_dict.items():
                 tf.summary.scalar(loss_name, metric.result(), step=step)
+
+    def log_config_file(self, step: int) -> None:
+        json_configs = json.dumps(cfg, default=lambda o: str(o), indent=1)
+        with self.train_summary_writer.as_default():
+            tf.summary.scalar("configs", json_configs, step=step)
 
     def log_images(
         self,
