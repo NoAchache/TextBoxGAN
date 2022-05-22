@@ -38,22 +38,18 @@ def learned_perceptual_metric_model(
     net_out1 = net(net_out1)
     net_out2 = net(net_out2)
 
-    # nhwc -> nchw
-    net_out1 = [Permute(dims=(3, 1, 2))(t) for t in net_out1]
-    net_out2 = [Permute(dims=(3, 1, 2))(t) for t in net_out2]
-
     # normalize
     net_out1 = [
         Lambda(
             lambda x: x
-            * tf.math.rsqrt(tf.reduce_sum(tf.square(x), axis=1, keepdims=True))
+            * tf.math.rsqrt(tf.reduce_sum(tf.square(x), axis=3, keepdims=True))
         )(t)
         for t in net_out1
     ]
     net_out2 = [
         Lambda(
             lambda x: x
-            * tf.math.rsqrt(tf.reduce_sum(tf.square(x), axis=1, keepdims=True))
+            * tf.math.rsqrt(tf.reduce_sum(tf.square(x), axis=3, keepdims=True))
         )(t)
         for t in net_out2
     ]
@@ -69,7 +65,7 @@ def learned_perceptual_metric_model(
 
     # take spatial average
     lin_out = [
-        Lambda(lambda x: tf.reduce_mean(x, axis=[2, 3], keepdims=True))(t)
+        Lambda(lambda x: tf.reduce_mean(x, axis=[1, 2], keepdims=True))(t)
         for t in lin_out
     ]
 
@@ -199,7 +195,7 @@ def linear_model(input_image_height, input_image_width):
         image_height = input_image_height // (2**ii)
         image_width = input_image_width // (2**ii)
 
-        model_input = Input(shape=(channel, image_height, image_width), dtype="float32")
+        model_input = Input(shape=(image_height, image_width, channel), dtype="float32")
         model_output = Dropout(rate=0.5, dtype="float32")(model_input)
         model_output = Conv2D(
             filters=1,
@@ -207,7 +203,7 @@ def linear_model(input_image_height, input_image_width):
             strides=1,
             use_bias=False,
             dtype="float32",
-            data_format="channels_first",
+            data_format="channels_last",
             name=name,
         )(model_output)
         inputs.append(model_input)

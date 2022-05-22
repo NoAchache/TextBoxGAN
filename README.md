@@ -31,7 +31,7 @@ of generating "Words with the same style" using our model_<p>
 For Training or using the Projector:
 - 1 or more CUDA compatible GPUs (making it work on CPU is in progress)
 
-_PS: Inference now works on CPU_
+_PS: Inference and the Projector now works on CPU_
 
 ### Install with docker
 
