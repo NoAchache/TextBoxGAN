@@ -182,15 +182,6 @@ class Trainer(object):
             do_r1_reg = True if (step + 1) % self.d_opt["reg_interval"] == 0 else False
             do_pl_reg = True if (step + 1) % self.g_opt["reg_interval"] == 0 else False
 
-            if (
-                step > 5000
-            ):  # Set the ocr_loss_weight (close) to 0 at the beginning of the training since it is too early
-                # to have a text to read from
-                ocr_loss_weight = self.ocr_loss_weight
-
-            else:
-                ocr_loss_weight = 1e-8
-
             (gen_losses, disc_losses, ocr_loss,) = self.training_step.dist_train_step(
                 real_images,
                 ocr_image,
@@ -198,7 +189,7 @@ class Trainer(object):
                 ocr_labels,
                 do_r1_reg,
                 do_pl_reg,
-                ocr_loss_weight,
+                self.ocr_loss_weight,
             )
 
             reg_g_loss, g_loss, pl_penalty = gen_losses
