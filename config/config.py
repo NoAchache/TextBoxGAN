@@ -99,7 +99,7 @@ cfg.num_images_per_log = 3
 cfg.validation_step_frequency = 10000
 cfg.save_step_frequency = 10000
 cfg.num_ckpts_to_keep = 5
-cfg.batch_size_per_gpu = 1
+cfg.batch_size_per_gpu = 4
 
 
 # OCR
@@ -113,7 +113,7 @@ cfg.shuffle_seed = 4444
 cfg.buffer_size = (
     -1
 )  # buffer size for the training dataset. Use -1 to select the entire dataset
-cfg.max_steps = 10e7
+cfg.max_steps = 130000
 
 
 #### FIXED CONFIGS, DO NOT CHANGE THEM #####
