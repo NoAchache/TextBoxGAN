@@ -119,13 +119,11 @@ class TensorboardWriter:
             (input_words, z),
             truncation_psi=0.5,
             batch_size=self.num_images_per_log,
-            training=False,
         )
         fake_images_07 = generator(
             (input_words, z),
             truncation_psi=0.7,
             batch_size=self.num_images_per_log,
-            training=False,
         )
 
         height_concat_images = tf.concat([fake_images_05, fake_images_07], axis=2)

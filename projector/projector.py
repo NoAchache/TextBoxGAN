@@ -93,7 +93,7 @@ class Projector:
 
         """
         z_latent = tf.random.normal(shape=[self.n_mean_latent, cfg.z_dim])
-        w_latent = self.generator.latent_encoder(z_latent, training=False)[:, 1, :]
+        w_latent = self.generator.latent_encoder(z_latent)[:, 1, :]
         w_latent_mean = tf.reduce_mean(w_latent, axis=0, keepdims=True)
         w_latent_std = (
             tf.reduce_sum((w_latent - w_latent_mean) ** 2) / self.n_mean_latent
@@ -138,7 +138,6 @@ class Projector:
         word_encoded = self.generator.word_encoder(
             input_word_array,
             batch_size=1,
-            training=False,
         )
 
         saved_latents = []
@@ -264,9 +263,7 @@ class Projector:
                 [1, self.generator.n_style, 1],
             )
 
-            generated_image = self.generator.synthesis(
-                [word_encoded, w_latent_final], training=False
-            )
+            generated_image = self.generator.synthesis([word_encoded, w_latent_final])
 
             ocr_loss = self._get_ocr_loss(ocr_label, generated_image, input_word)
             p_loss = self.get_perceptual_loss(generated_image, target_image)

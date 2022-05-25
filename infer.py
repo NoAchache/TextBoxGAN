@@ -62,15 +62,12 @@ class Infer:
             word_encoded = self.generator.word_encoder(
                 padded_encoded_words,
                 batch_size=len(words_list),
-                training=False,
             )
             w_latents = tf.tile(
                 tf.expand_dims(w_latents, 0),
                 [len(words_list), self.generator.n_style, 1],
             )
-            fake_images = self.generator.synthesis(
-                [word_encoded, w_latents], training=False
-            )
+            fake_images = self.generator.synthesis([word_encoded, w_latents])
         else:
             fake_images = self.generator(
                 [
@@ -79,7 +76,6 @@ class Infer:
                         tf.random.normal(shape=[1, cfg.z_dim]), [len(words_list), 1]
                     ),
                 ],
-                training=False,
                 truncation_psi=truncation_psi,
                 batch_size=len(words_list),
             )

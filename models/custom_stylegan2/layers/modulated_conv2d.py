@@ -63,7 +63,7 @@ class ModulatedConv2D(tf.keras.layers.Layer):
         w_init = tf.random.normal(shape=weight_shape, mean=0.0, stddev=init_std)
         self.w = tf.Variable(w_init, name="w", trainable=True)
 
-    def call(self, inputs, training=None, mask=None):
+    def call(self, inputs):
         x, y = inputs
         # height, width = tf.shape(x)[2], tf.shape(x)[3]
 

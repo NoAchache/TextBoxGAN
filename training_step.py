@@ -177,7 +177,7 @@ class TrainingStep:
                         shape=[self.batch_size_per_gpu, self.z_dim],
                         dtype=tf.dtypes.float32,
                     )
-                    fake_images = self.generator([input_words, z], training=True)
+                    fake_images = self.generator([input_words, z])
 
                     fake_images = mask_text_box(
                         fake_images, input_words, self.char_width
@@ -262,7 +262,7 @@ class TrainingStep:
         if do_r1_reg:
             real_scores, r1_penalty = self._r1_reg(real_images)
         else:
-            real_scores = self.discriminator(real_images, training=True)
+            real_scores = self.discriminator(real_images)
             r1_penalty = tf.constant(0.0, dtype=tf.float32)
 
         d_loss = discriminator_loss(fake_scores, real_scores)
@@ -290,7 +290,7 @@ class TrainingStep:
         pl_penalty: Penalty of the Path Length regression.
 
         """
-        fake_scores = self.discriminator(fake_images, training=True)
+        fake_scores = self.discriminator(fake_images)
         g_loss = generator_loss(fake_scores)
 
         pl_penalty = (
@@ -331,7 +331,6 @@ class TrainingStep:
                 (input_words[:pl_minibatch], pl_z),
                 batch_size=pl_minibatch,
                 ret_style=True,
-                training=True,
             )
             pl_noise = tf.random.normal(tf.shape(pl_fake_images)) * self.pl_noise_scaler
             pl_noise_applied = tf.reduce_sum(pl_fake_images * pl_noise)
@@ -368,7 +367,7 @@ class TrainingStep:
         """
         with tf.GradientTape() as r1_tape:
             r1_tape.watch(real_images)
-            real_scores = self.discriminator(real_images, training=True)
+            real_scores = self.discriminator(real_images)
             real_loss = tf.reduce_sum(real_scores)
 
         real_grads = r1_tape.gradient(real_loss, real_images)
