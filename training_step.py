@@ -198,11 +198,7 @@ class TrainingStep:
 
         self._backpropagates_gradient(
             tape=g_tape,
-            models=[
-                self.generator.synthesis,
-                self.generator.latent_encoder,
-                self.generator.word_encoder,
-            ],
+            models=[self.generator.synthesis, self.generator.latent_encoder],
             loss=reg_g_loss,
             optimizer=self.g_optimizer,
         )
