@@ -80,6 +80,7 @@ class LatentEncoder(tf.keras.Model):
     def call(
         self,
         inputs,
+        training: bool,
         ret_w_broadcasted=False,
         truncation_psi=1.0,
     ):

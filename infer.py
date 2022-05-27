@@ -76,6 +76,7 @@ class Infer:
                         tf.random.normal(shape=[1, cfg.z_dim]), [len(words_list), 1]
                     ),
                 ],
+                training=False,
                 truncation_psi=truncation_psi,
                 batch_size=len(words_list),
             )

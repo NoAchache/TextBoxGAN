@@ -22,6 +22,7 @@ class Generator(tf.keras.Model):
         batch_size=cfg.batch_size_per_gpu,
         ret_style=False,
         truncation_psi=1.0,
+        training=False,
     ):
         input_words, z_latent = inputs  # ((bs, max_char_number), (bs , z_dim))
 
@@ -31,7 +32,7 @@ class Generator(tf.keras.Model):
         )
 
         style = self.latent_encoder(
-            z_latent, truncation_psi=truncation_psi
+            z_latent, training=training, truncation_psi=truncation_psi
         )  # (bs, self.n_style, style_dim)
 
         image_out = self.synthesis([word_encoded, style])

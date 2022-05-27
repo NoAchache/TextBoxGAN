@@ -93,7 +93,7 @@ class Projector:
 
         """
         z_latent = tf.random.normal(shape=[self.n_mean_latent, cfg.z_dim])
-        w_latent = self.generator.latent_encoder(z_latent)[:, 1, :]
+        w_latent = self.generator.latent_encoder(z_latent, training=False)[:, 1, :]
         w_latent_mean = tf.reduce_mean(w_latent, axis=0, keepdims=True)
         w_latent_std = (
             tf.reduce_sum((w_latent - w_latent_mean) ** 2) / self.n_mean_latent

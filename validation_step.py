@@ -78,7 +78,7 @@ class ValidationStep:
             dtype=tf.dtypes.float32,
         )
 
-        fake_images = self.generator([input_words, z])
+        fake_images = self.generator([input_words, z], training=False)
 
         fake_images = mask_text_box(fake_images, input_words, self.char_width)
 
