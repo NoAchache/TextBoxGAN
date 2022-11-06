@@ -199,7 +199,10 @@ class Discriminator(tf.keras.Model):
         self.last_dense = Dense(1, gain=1.0, lrmul=1.0, name="last_dense")
         self.last_bias = BiasAct(lrmul=1.0, act="linear", name="last_bias")
 
-    def call(self, inputs):
+        self.dense_1 = Dense(256, gain=1.0, lrmul=1.0, name="dense_uno")
+        self.dense_2 = Dense(256, gain=1.0, lrmul=1.0, name="dense_dos")
+
+    def call(self, inputs, logits):
         images = inputs
 
         x = self.initial_fromrgb(images)
@@ -207,6 +210,15 @@ class Discriminator(tf.keras.Model):
             x = block(x)
 
         x = self.last_block(x)
+
+        # reshape
+        logits = tf.reshape(logits, shape=[-1, 8 * 96])
+        logits = self.dense_1(logits)
+
+        x = tf.concat([x, logits], axis=1)
+
+        x = self.dense_2(x)
+
         x = self.last_dense(x)
         x = self.last_bias(x)
 

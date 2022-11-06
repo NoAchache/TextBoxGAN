@@ -179,17 +179,18 @@ class TrainingStep:
 
             fake_images = mask_text_box(fake_images, input_words, self.char_width)
 
+            ocr_loss, logits = self._get_ocr_loss(fake_images, ocr_labels, ocr_images)
+            weighted_ocr_loss = ocr_loss_weight * ocr_loss
+
             (
                 fake_scores,
                 reg_g_loss,
                 g_loss,
                 pl_penalty,
-            ) = self._get_generator_losses(fake_images, do_pl_reg, input_words)
+            ) = self._get_generator_losses(fake_images, do_pl_reg, input_words, logits)
             reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
                 fake_scores, real_images, do_r1_reg
             )
-            ocr_loss = self._get_ocr_loss(fake_images, ocr_labels, ocr_images)
-            ocr_loss = ocr_loss_weight * ocr_loss
 
         self._backpropagates_gradient(
             tape=tape,
@@ -201,7 +202,7 @@ class TrainingStep:
         self._backpropagates_gradient(
             tape=tape,
             models=[self.generator.synthesis, self.generator.word_encoder],
-            loss=ocr_loss,
+            loss=weighted_ocr_loss,
             optimizer=self.ocr_optimizer,
         )
 
@@ -218,7 +219,7 @@ class TrainingStep:
         return (
             gen_losses,
             disc_losses,
-            ocr_loss / ocr_loss_weight,
+            ocr_loss,
         )
 
     def _backpropagates_gradient(
@@ -266,7 +267,7 @@ class TrainingStep:
         return reg_d_loss, d_loss, r1_penalty
 
     def _get_generator_losses(
-        self, fake_images: tf.float32, do_pl_reg: bool, input_words: tf.int32
+        self, fake_images: tf.float32, do_pl_reg: bool, input_words: tf.int32, logits
     ) -> Tuple["tf.float32", "tf.float32", "tf.float32", "tf.float32"]:
         """
         Computes the losses associated to the generator, i.e. the generator loss and the Path Length regression
@@ -285,7 +286,7 @@ class TrainingStep:
         pl_penalty: Penalty of the Path Length regression.
 
         """
-        fake_scores = self.discriminator(fake_images)
+        fake_scores = self.discriminator(fake_images, logits)
         g_loss = generator_loss(fake_scores)
 
         pl_penalty = (
@@ -399,4 +400,4 @@ class TrainingStep:
             real_logits = self.aster_ocr(ocr_images)
             return mean_squared_loss(real_logits, logits)
         elif self.ocr_loss_type == "softmax_crossentropy":
-            return softmax_cross_entropy_loss(logits, ocr_labels)
+            return softmax_cross_entropy_loss(logits, ocr_labels), logits
