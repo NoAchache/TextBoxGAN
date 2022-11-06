@@ -3,6 +3,7 @@ import os
 import cv2
 import numpy as np
 import tensorflow as tf
+from PIL import Image
 
 from aster_ocr_utils.aster_inferer import AsterInferer
 from config import cfg
@@ -21,14 +22,12 @@ def infer_images(aster, images_dir):
 
     """
     for image_name in os.listdir(images_dir):
-        image_path = os.path.join(image_name, image_name)
-        image = cv2.imread(image_path)
-
-        ocr_image = cv2.resize(
-            image, (cfg.aster_image_dims[1], cfg.aster_image_dims[0])
-        )
-        ocr_image = ocr_image.astype(np.float32) / 127.5 - 1.0
-        ocr_image = tf.expand_dims(tf.constant(ocr_image), 0)
+        image_path = os.path.join(images_dir, image_name)
+        image = np.array(Image.open(image_path))
+        ocr_image = tf.cast(tf.convert_to_tensor(image), tf.float32) / 127.5 - 1.0
+        ocr_image = tf.compat.v1.image.resize(ocr_image, cfg.aster_image_dims)[
+            tf.newaxis
+        ]
 
         logits = aster(ocr_image)
         sequence_length = [logits.shape[1]]
