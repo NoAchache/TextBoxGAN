@@ -22,17 +22,17 @@ class AsterInferer(tf.keras.Model):
         self.combine_forward_and_backward = combine_forward_and_backward
         tfa.register_all(custom_kernels=False)
         self.model = tf.saved_model.load(cfg.aster_weights, tags="serve").signatures[
-            "serving_default"
+            tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY
         ]
 
     def call(self, inputs):
         logits = []
-        for i in range(len(inputs)):
-            prediction = self.model(inputs[i : i + 1])
-            if self.combine_forward_and_backward:
-                logits.append(self._postprocess_combine(prediction))
-            else:
-                logits.append(self._postprocess_simple(prediction["forward_logits"]))
+        prediction = self.model(inputs)
+        # TODO: make self._postprocess_combine and _postprocess_simple process the entire batch
+        if self.combine_forward_and_backward:
+            logits.append(self._postprocess_combine(prediction))
+        else:
+            logits.append(self._postprocess_simple(prediction["forward_logits"]))
 
         return tf.concat(logits, axis=0)
 
