@@ -189,7 +189,7 @@ class TrainingStep:
                 pl_penalty,
             ) = self._get_generator_losses(fake_images, do_pl_reg, input_words, logits)
             reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
-                fake_scores, real_images, do_r1_reg
+                fake_scores, real_images, do_r1_reg, logits
             )
 
         self._backpropagates_gradient(
@@ -236,7 +236,7 @@ class TrainingStep:
         optimizer.apply_gradients(zip(gradients, trainable_variables))
 
     def _get_discriminator_losses(
-        self, fake_scores: tf.float32, real_images: tf.float32, do_r1_reg: bool
+        self, fake_scores: tf.float32, real_images: tf.float32, do_r1_reg: bool, logits
     ) -> Tuple["tf.float32", "tf.float32", "tf.float32"]:
         """
         Computes the losses associated to the discriminator, i.e. the discriminator loss and the R1 regression
@@ -256,9 +256,9 @@ class TrainingStep:
         """
 
         if do_r1_reg:
-            real_scores, r1_penalty = self._r1_reg(real_images)
+            real_scores, r1_penalty = self._r1_reg(real_images, logits)
         else:
-            real_scores = self.discriminator(real_images)
+            real_scores = self.discriminator(real_images, logits)
             r1_penalty = tf.constant(0.0, dtype=tf.float32)
 
         d_loss = discriminator_loss(fake_scores, real_scores)
@@ -347,7 +347,9 @@ class TrainingStep:
         pl_penalty = pl_penalty * self.pl_minibatch_shrink * self.g_reg_interval
         return tf.reduce_sum(pl_penalty) / self.batch_size  # scales penalty
 
-    def _r1_reg(self, real_images: tf.float32) -> Tuple["tf.float32", "tf.float32"]:
+    def _r1_reg(
+        self, real_images: tf.float32, logits
+    ) -> Tuple["tf.float32", "tf.float32"]:
         """
         Infer the discriminator and computes the R1 regression.
 
@@ -363,7 +365,7 @@ class TrainingStep:
         """
         with tf.GradientTape() as r1_tape:
             r1_tape.watch(real_images)
-            real_scores = self.discriminator(real_images)
+            real_scores = self.discriminator(real_images, logits)
             real_loss = tf.reduce_sum(real_scores)
 
         real_grads = r1_tape.gradient(real_loss, real_images)
