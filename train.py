@@ -191,7 +191,7 @@ class Trainer(object):
             else:
                 ocr_loss_weight = 1e-8
 
-            (gen_losses, disc_losses, ocr_loss,) = self.training_step.dist_train_step(
+            (ocr_loss,) = self.training_step.dist_train_step(
                 real_images,
                 ocr_image,
                 input_words,
@@ -201,8 +201,8 @@ class Trainer(object):
                 ocr_loss_weight,
             )
 
-            reg_g_loss, g_loss, pl_penalty = gen_losses
-            reg_d_loss, d_loss, r1_penalty = disc_losses
+            # reg_g_loss, g_loss, pl_penalty = gen_losses
+            # reg_d_loss, d_loss, r1_penalty = disc_losses
 
             # update g_clone
             self.g_clone.set_as_moving_average_of(self.generator)
@@ -211,13 +211,13 @@ class Trainer(object):
             step = self.g_optimizer.iterations.numpy()
 
             losses_dict = {
-                "reg_g_loss": reg_g_loss,
-                "g_loss": g_loss,
-                "pl_penalty": pl_penalty,
+                # "reg_g_loss": reg_g_loss,
+                # "g_loss": g_loss,
+                # "pl_penalty": pl_penalty,
                 "ocr_loss": ocr_loss,
-                "reg_d_loss": reg_d_loss,
-                "d_loss": d_loss,
-                "r1_penalty": r1_penalty,
+                # "reg_d_loss": reg_d_loss,
+                # "d_loss": d_loss,
+                # "r1_penalty": r1_penalty,
             }
 
             for loss_tracker in loss_trackers:

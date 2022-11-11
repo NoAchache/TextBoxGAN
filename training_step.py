@@ -88,7 +88,7 @@ class TrainingStep:
 
         """
 
-        (gen_losses, disc_losses, ocr_loss,) = cfg.strategy.run(
+        (ocr_loss,) = cfg.strategy.run(
             fn=self._train_step,
             args=(
                 real_images,
@@ -102,38 +102,38 @@ class TrainingStep:
         )
 
         # Reduce generator losses
-        reg_g_loss, g_loss, pl_penalty = gen_losses
-        mean_reg_g_loss = cfg.strategy.reduce(
-            tf.distribute.ReduceOp.SUM, reg_g_loss, axis=None
-        )
-        mean_g_loss = cfg.strategy.reduce(tf.distribute.ReduceOp.SUM, g_loss, axis=None)
-        if do_pl_reg:
-            mean_pl_penalty = cfg.strategy.reduce(
-                tf.distribute.ReduceOp.SUM, pl_penalty, axis=None
-            )
-        else:
-            mean_pl_penalty = tf.constant(0.0, dtype=tf.float32)
-
-        mean_gen_losses = (mean_reg_g_loss, mean_g_loss, mean_pl_penalty)
-
+        # reg_g_loss, g_loss, pl_penalty = gen_losses
+        # mean_reg_g_loss = cfg.strategy.reduce(
+        #     tf.distribute.ReduceOp.SUM, reg_g_loss, axis=None
+        # )
+        # mean_g_loss = cfg.strategy.reduce(tf.distribute.ReduceOp.SUM, g_loss, axis=None)
+        # if do_pl_reg:
+        #     mean_pl_penalty = cfg.strategy.reduce(
+        #         tf.distribute.ReduceOp.SUM, pl_penalty, axis=None
+        #     )
+        # else:
+        #     mean_pl_penalty = tf.constant(0.0, dtype=tf.float32)
+        #
+        # mean_gen_losses = (mean_reg_g_loss, mean_g_loss, mean_pl_penalty)
+        #
         # Reduce discriminator losses
-        reg_d_loss, d_loss, r1_penalty = disc_losses
-
-        mean_reg_d_loss = cfg.strategy.reduce(
-            tf.distribute.ReduceOp.SUM, reg_d_loss, axis=None
-        )
-        mean_d_loss = cfg.strategy.reduce(tf.distribute.ReduceOp.SUM, d_loss, axis=None)
-        mean_r1_penalty = cfg.strategy.reduce(
-            tf.distribute.ReduceOp.SUM, r1_penalty, axis=None
-        )
-
-        mean_disc_losses = (mean_reg_d_loss, mean_d_loss, mean_r1_penalty)
-
+        # reg_d_loss, d_loss, r1_penalty = disc_losses
+        #
+        # mean_reg_d_loss = cfg.strategy.reduce(
+        #     tf.distribute.ReduceOp.SUM, reg_d_loss, axis=None
+        # )
+        # mean_d_loss = cfg.strategy.reduce(tf.distribute.ReduceOp.SUM, d_loss, axis=None)
+        # mean_r1_penalty = cfg.strategy.reduce(
+        #     tf.distribute.ReduceOp.SUM, r1_penalty, axis=None
+        # )
+        #
+        # mean_disc_losses = (mean_reg_d_loss, mean_d_loss, mean_r1_penalty)
+        #
         mean_ocr_loss = cfg.strategy.reduce(
             tf.distribute.ReduceOp.SUM, ocr_loss, axis=None
         )
 
-        return mean_gen_losses, mean_disc_losses, mean_ocr_loss
+        return mean_ocr_loss
 
     def _train_step(
         self,
@@ -182,22 +182,22 @@ class TrainingStep:
             ocr_loss, logits = self._get_ocr_loss(fake_images, ocr_labels, ocr_images)
             weighted_ocr_loss = ocr_loss_weight * ocr_loss
 
-            (
-                fake_scores,
-                reg_g_loss,
-                g_loss,
-                pl_penalty,
-            ) = self._get_generator_losses(fake_images, do_pl_reg, input_words, logits)
-            reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
-                fake_scores, real_images, do_r1_reg, logits
-            )
+            # (
+            #     fake_scores,
+            #     reg_g_loss,
+            #     g_loss,
+            #     pl_penalty,
+            # ) = self._get_generator_losses(fake_images, do_pl_reg, input_words, logits)
+            # reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
+            #     fake_scores, real_images, do_r1_reg, logits
+            # )
 
-        self._backpropagates_gradient(
-            tape=tape,
-            models=[self.generator.synthesis, self.generator.latent_encoder],
-            loss=reg_g_loss,
-            optimizer=self.g_optimizer,
-        )
+        # self._backpropagates_gradient(
+        #     tape=tape,
+        #     models=[self.generator.synthesis, self.generator.latent_encoder],
+        #     loss=reg_g_loss,
+        #     optimizer=self.g_optimizer,
+        # )
 
         self._backpropagates_gradient(
             tape=tape,
@@ -206,19 +206,19 @@ class TrainingStep:
             optimizer=self.ocr_optimizer,
         )
 
-        self._backpropagates_gradient(
-            tape=tape,
-            models=[self.discriminator],
-            loss=reg_d_loss,
-            optimizer=self.d_optimizer,
-        )
+        # self._backpropagates_gradient(
+        #     tape=tape,
+        #     models=[self.discriminator],
+        #     loss=reg_d_loss,
+        #     optimizer=self.d_optimizer,
+        # )
 
-        gen_losses = (reg_g_loss, g_loss, pl_penalty)
-        disc_losses = (reg_d_loss, d_loss, r1_penalty)
+        # gen_losses = (reg_g_loss, g_loss, pl_penalty)
+        # disc_losses = (reg_d_loss, d_loss, r1_penalty)
 
         return (
-            gen_losses,
-            disc_losses,
+            # gen_losses,
+            # disc_losses,
             ocr_loss,
         )
 
