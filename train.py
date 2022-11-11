@@ -172,11 +172,11 @@ class Trainer(object):
         validation_tracker = LossTracker(["validation_ocr_loss"])
 
         self.tensorboard_writer.log_config_file(
-            step=self.g_optimizer.iterations.numpy()
+            step=self.ocr_optimizer.iterations.numpy()
         )
         # start training
         for real_images, ocr_image, input_words, ocr_labels in train_dataset:
-            step = self.g_optimizer.iterations.numpy()
+            step = self.ocr_optimizer.iterations.numpy()
 
             # g train step
             do_r1_reg = True if (step + 1) % self.d_opt["reg_interval"] == 0 else False
@@ -208,7 +208,7 @@ class Trainer(object):
             self.g_clone.set_as_moving_average_of(self.generator)
 
             # get current step
-            step = self.g_optimizer.iterations.numpy()
+            step = self.ocr_optimizer.iterations.numpy()
 
             losses_dict = {
                 # "reg_g_loss": reg_g_loss,
@@ -257,7 +257,7 @@ class Trainer(object):
                 break
 
         # save last checkpoint
-        step = self.g_optimizer.iterations.numpy()
+        step = self.ocr_optimizer.iterations.numpy()
         self.manager.save(checkpoint_number=step)
 
 
