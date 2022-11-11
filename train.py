@@ -191,7 +191,7 @@ class Trainer(object):
             else:
                 ocr_loss_weight = 1e-8
 
-            (ocr_loss,) = self.training_step.dist_train_step(
+            ocr_loss = self.training_step.dist_train_step(
                 real_images,
                 ocr_image,
                 input_words,

@@ -88,7 +88,7 @@ class TrainingStep:
 
         """
 
-        (ocr_loss,) = cfg.strategy.run(
+        ocr_loss = cfg.strategy.run(
             fn=self._train_step,
             args=(
                 real_images,
@@ -216,11 +216,7 @@ class TrainingStep:
         # gen_losses = (reg_g_loss, g_loss, pl_penalty)
         # disc_losses = (reg_d_loss, d_loss, r1_penalty)
 
-        return (
-            # gen_losses,
-            # disc_losses,
-            ocr_loss,
-        )
+        return ocr_loss
 
     def _backpropagates_gradient(
         self,
