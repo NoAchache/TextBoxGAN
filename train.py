@@ -183,7 +183,7 @@ class Trainer(object):
             do_pl_reg = True if (step + 1) % self.g_opt["reg_interval"] == 0 else False
 
             if (
-                step > 5000
+                step > 0
             ):  # Set the ocr_loss_weight (close) to 0 at the beginning of the training since it is too early
                 # to have a text to read from
                 ocr_loss_weight = self.ocr_loss_weight
