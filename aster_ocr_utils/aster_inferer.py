@@ -27,12 +27,12 @@ class AsterInferer(tf.keras.Model):
 
     def call(self, inputs):
         logits = []
-        prediction = self.model(inputs)
-        # TODO: make self._postprocess_combine and _postprocess_simple process the entire batch
-        if self.combine_forward_and_backward:
-            logits.append(self._postprocess_combine(prediction))
-        else:
-            logits.append(self._postprocess_simple(prediction["forward_logits"]))
+        for i in range(len(inputs)):
+            prediction = self.model(inputs[i : i + 1])
+            if self.combine_forward_and_backward:
+                logits.append(self._postprocess_combine(prediction))
+            else:
+                logits.append(self._postprocess_simple(prediction["forward_logits"]))
 
         return tf.concat(logits, axis=0)
 

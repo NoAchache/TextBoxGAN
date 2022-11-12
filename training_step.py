@@ -170,48 +170,43 @@ class TrainingStep:
 
         """
 
-        with tf.GradientTape() as ocr_tape:
-            with tf.GradientTape() as g_tape:
-                with tf.GradientTape() as d_tape:
-                    z = tf.random.normal(
-                        shape=[self.batch_size_per_gpu, self.z_dim],
-                        dtype=tf.dtypes.float32,
-                    )
-                    fake_images = self.generator([input_words, z], training=True)
+        with tf.GradientTape(persistent=True) as tape:
+            z = tf.random.normal(
+                shape=[self.batch_size_per_gpu, self.z_dim],
+                dtype=tf.dtypes.float32,
+            )
+            fake_images = self.generator([input_words, z], training=True)
 
-                    fake_images = mask_text_box(
-                        fake_images, input_words, self.char_width
-                    )
+            fake_images = mask_text_box(fake_images, input_words, self.char_width)
 
-                    (
-                        fake_scores,
-                        reg_g_loss,
-                        g_loss,
-                        pl_penalty,
-                    ) = self._get_generator_losses(fake_images, do_pl_reg, input_words)
-                    reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
-                        fake_scores, real_images, do_r1_reg
-                    )
-
+            (
+                fake_scores,
+                reg_g_loss,
+                g_loss,
+                pl_penalty,
+            ) = self._get_generator_losses(fake_images, do_pl_reg, input_words)
+            reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
+                fake_scores, real_images, do_r1_reg
+            )
             ocr_loss = self._get_ocr_loss(fake_images, ocr_labels, ocr_images)
             ocr_loss = ocr_loss_weight * ocr_loss
 
         self._backpropagates_gradient(
-            tape=g_tape,
+            tape=tape,
             models=[self.generator.synthesis, self.generator.latent_encoder],
             loss=reg_g_loss,
             optimizer=self.g_optimizer,
         )
 
         self._backpropagates_gradient(
-            tape=ocr_tape,
+            tape=tape,
             models=[self.generator.synthesis, self.generator.word_encoder],
             loss=ocr_loss,
             optimizer=self.ocr_optimizer,
         )
 
         self._backpropagates_gradient(
-            tape=d_tape,
+            tape=tape,
             models=[self.discriminator],
             loss=reg_d_loss,
             optimizer=self.d_optimizer,
