@@ -153,8 +153,8 @@ class AsterInferer(tf.keras.Model):
 
         mask = tf.concat(
             [
-                tf.ones(cfg.max_char_number - tf.shape(padding)[1]),
-                tf.zeros(tf.shape(padding)[1]),
+                tf.ones(cfg.max_char_number - padding_len),
+                tf.zeros(padding_len),
             ],
             axis=0,
         )
