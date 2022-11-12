@@ -396,10 +396,11 @@ class TrainingStep:
         fake_images_ocr_format = self.aster_ocr.convert_inputs(
             fake_images, ocr_labels, blank_label=1
         )
-        logits = self.aster_ocr(fake_images_ocr_format)
+        logits, mask = self.aster_ocr(fake_images_ocr_format)
 
         if self.ocr_loss_type == "mse":
             real_logits = self.aster_ocr(ocr_images)
             return mean_squared_loss(real_logits, logits)
         elif self.ocr_loss_type == "softmax_crossentropy":
-            return softmax_cross_entropy_loss(logits, ocr_labels), logits
+            loss = softmax_cross_entropy_loss(logits, ocr_labels)
+            return loss, logits * mask

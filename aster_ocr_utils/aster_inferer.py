@@ -27,14 +27,17 @@ class AsterInferer(tf.keras.Model):
 
     def call(self, inputs):
         logits = []
+        masks = []
         for i in range(len(inputs)):
             prediction = self.model(inputs[i : i + 1])
             if self.combine_forward_and_backward:
                 logits.append(self._postprocess_combine(prediction))
             else:
-                logits.append(self._postprocess_simple(prediction["forward_logits"]))
+                l, mask = self._postprocess_simple(prediction["forward_logits"])
+                logits.append(l)
+                masks.append(mask)
 
-        return tf.concat(logits, axis=0)
+        return tf.concat(logits, axis=0), tf.stack(masks)[:, :, tf.newaxis]
 
     def _postprocess_combine(self, logits: tf.float32) -> tf.float32:
         """
@@ -148,7 +151,14 @@ class AsterInferer(tf.keras.Model):
 
             logits = tf.concat([logits, padding], axis=1)
 
-        return logits
+        mask = tf.concat(
+            [
+                tf.ones(cfg.max_char_number - tf.shape(padding)[1]),
+                tf.zeros(tf.shape(padding)[1]),
+            ],
+            axis=0,
+        )
+        return logits, mask
 
     @staticmethod
     def convert_inputs(
