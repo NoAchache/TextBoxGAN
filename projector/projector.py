@@ -203,7 +203,7 @@ class Projector:
             generated_image, input_word, blank_label=0
         )
 
-        logits = self.aster_ocr(fake_images_ocr_format)
+        logits, mask = self.aster_ocr(fake_images_ocr_format)
         return softmax_cross_entropy_loss(logits, ocr_label)
 
     def get_perceptual_loss(

@@ -399,7 +399,7 @@ class TrainingStep:
         logits, mask = self.aster_ocr(fake_images_ocr_format)
 
         if self.ocr_loss_type == "mse":
-            real_logits = self.aster_ocr(ocr_images)
+            real_logits, mask = self.aster_ocr(ocr_images)
             return mean_squared_loss(real_logits, logits)
         elif self.ocr_loss_type == "softmax_crossentropy":
             loss = softmax_cross_entropy_loss(logits, ocr_labels)
