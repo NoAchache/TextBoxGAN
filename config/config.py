@@ -106,7 +106,7 @@ cfg.batch_size_per_gpu = 4
 
 # OCR
 cfg.aster_weights = osp.join(cfg.working_dir, "aster_weights")
-cfg.ocr_loss_weight = 0.0001
+cfg.ocr_loss_weight = 0.00001
 cfg.ocr_loss_type = "softmax_crossentropy"
 assert cfg.ocr_loss_type in ["softmax_crossentropy", "mse"]
 
