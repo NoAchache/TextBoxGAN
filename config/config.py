@@ -14,7 +14,9 @@ cfg = EasyDict()
 cfg.working_dir = os.path.dirname(os.path.dirname(__file__))
 cfg.experiment_dir = osp.join(cfg.working_dir, "experiments")
 
-EXPERIMENT_NAME = None  # experiment to load from
+EXPERIMENT_NAME = (  # experiment to load from
+    "ocr_divide_10_logits_discriminator_mask_encode_sum_logits"
+)
 
 cfg.experiment_name = (
     f"TextBoxGAN_{datetime.now().strftime('%d-%m-%Y_%Hh%M')}"
@@ -115,7 +117,7 @@ cfg.shuffle_seed = 4444
 cfg.buffer_size = (
     -1
 )  # buffer size for the training dataset. Use -1 to select the entire dataset
-cfg.max_steps = 130000
+cfg.max_steps = 330000
 
 
 #### FIXED CONFIGS, DO NOT CHANGE THEM #####
