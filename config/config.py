@@ -15,7 +15,7 @@ cfg.working_dir = os.path.dirname(os.path.dirname(__file__))
 cfg.experiment_dir = osp.join(cfg.working_dir, "experiments")
 
 EXPERIMENT_NAME = (  # experiment to load from
-    "ocr_divide_10_logits_discriminator_mask_encode_sum_logits"
+    "same_optim_discriminator_mask_encode_sum_logits"
 )
 
 cfg.experiment_name = (
