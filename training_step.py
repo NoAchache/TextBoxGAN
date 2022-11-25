@@ -199,7 +199,7 @@ class TrainingStep:
                 self.generator.latent_encoder,
                 self.generator.word_encoder,
             ],
-            loss=reg_g_loss + weighted_ocr_loss,
+            loss=[reg_g_loss, weighted_ocr_loss],
             optimizer=self.g_optimizer,
         )
 
