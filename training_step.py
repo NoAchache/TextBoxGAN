@@ -189,7 +189,7 @@ class TrainingStep:
                 pl_penalty,
             ) = self._get_generator_losses(fake_images, do_pl_reg, input_words, logits)
             reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
-                fake_scores, real_images, do_r1_reg, logits
+                fake_scores, real_images, do_r1_reg, ocr_images
             )
 
         self._backpropagates_gradient(
@@ -233,7 +233,11 @@ class TrainingStep:
         optimizer.apply_gradients(zip(gradients, trainable_variables))
 
     def _get_discriminator_losses(
-        self, fake_scores: tf.float32, real_images: tf.float32, do_r1_reg: bool, logits
+        self,
+        fake_scores: tf.float32,
+        real_images: tf.float32,
+        do_r1_reg: bool,
+        ocr_images,
     ) -> Tuple["tf.float32", "tf.float32", "tf.float32"]:
         """
         Computes the losses associated to the discriminator, i.e. the discriminator loss and the R1 regression
@@ -251,11 +255,13 @@ class TrainingStep:
         r1_penalty: Penalty of the Path Length regression.
 
         """
-
+        real_logits, mask = self.aster_ocr(ocr_images)
+        real_logits = real_logits * mask
         if do_r1_reg:
-            real_scores, r1_penalty = self._r1_reg(real_images, logits)
+            real_scores, r1_penalty = self._r1_reg(real_images, real_logits)
         else:
-            real_scores = self.discriminator(real_images, logits)
+
+            real_scores = self.discriminator(real_images, real_logits)
             r1_penalty = tf.constant(0.0, dtype=tf.float32)
 
         d_loss = discriminator_loss(fake_scores, real_scores)
