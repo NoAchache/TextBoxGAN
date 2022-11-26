@@ -65,13 +65,10 @@ class TrainingDataLoader:
         main_image = cv2.resize(image, (cfg.char_width * len(word), cfg.char_height))
         main_image = main_image.astype(np.float32) / 127.5 - 1.0
 
-        if self.return_ocr_image:
-            ocr_image = cv2.resize(
-                image, (cfg.aster_image_dims[1], cfg.aster_image_dims[0])
-            )
-            ocr_image = ocr_image.astype(np.float32) / 127.5 - 1.0
-        else:
-            ocr_image = 0.0
+        ocr_image = cv2.resize(
+            image, (cfg.aster_image_dims[1], cfg.aster_image_dims[0])
+        )
+        ocr_image = ocr_image.astype(np.float32) / 127.5 - 1.0
 
         padding_length = (cfg.max_char_number - len(word)) * cfg.char_width
         padded_image = cv2.copyMakeBorder(
