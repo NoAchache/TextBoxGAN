@@ -14,9 +14,7 @@ cfg = EasyDict()
 cfg.working_dir = os.path.dirname(os.path.dirname(__file__))
 cfg.experiment_dir = osp.join(cfg.working_dir, "experiments")
 
-EXPERIMENT_NAME = (  # experiment to load from
-    "same_optim_discriminator_mask_encode_sum_logits"
-)
+EXPERIMENT_NAME = "discriminator_mask_encode_sum_logits"  # experiment to load from
 
 cfg.experiment_name = (
     f"TextBoxGAN_{datetime.now().strftime('%d-%m-%Y_%Hh%M')}"
