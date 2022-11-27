@@ -39,7 +39,7 @@ class AsterInferer(tf.keras.Model):
                 )
                 logits.append(l)
                 masks.append(mask)
-                num_chars.append(num_char)
+                num_chars.append(float(num_char))
 
         return (
             tf.concat(logits, axis=0),
