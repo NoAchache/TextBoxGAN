@@ -185,7 +185,7 @@ class TensorboardWriter:
         true_text = cfg.char_tokenizer.main.sequences_to_texts(
             input_word_array.numpy() + 1
         )[0]
-        logits, mask = aster_ocr(ocr_images)
+        logits, _, _ = aster_ocr(ocr_images)
         sequence_length = [logits.shape[1]] * tf.shape(logits)[0].numpy()
         sequences_decoded = tf.nn.ctc_greedy_decoder(
             tf.transpose(logits, [1, 0, 2]), sequence_length, merge_repeated=False

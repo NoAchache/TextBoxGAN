@@ -191,6 +191,8 @@ class Trainer(object):
             else:
                 ocr_loss_weight = 1e-8
 
+            disc_logits_weight = 1 if step > 40000 else 0
+
             (gen_losses, disc_losses, ocr_loss,) = self.training_step.dist_train_step(
                 real_images,
                 ocr_image,
@@ -199,6 +201,7 @@ class Trainer(object):
                 do_r1_reg,
                 do_pl_reg,
                 ocr_loss_weight,
+                disc_logits_weight,
             )
 
             reg_g_loss, g_loss, pl_penalty = gen_losses

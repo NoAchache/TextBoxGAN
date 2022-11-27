@@ -85,6 +85,6 @@ class ValidationStep:
         ocr_input_image = self.aster_ocr.convert_inputs(
             fake_images, ocr_labels, blank_label=1
         )
-        logits, mask = self.aster_ocr(ocr_input_image)
+        logits, mask, num_chars = self.aster_ocr(ocr_input_image)
 
         return softmax_cross_entropy_loss(logits, ocr_labels)
