@@ -50,7 +50,11 @@ class ModelLoader:
 
         # build discriminator model
         discriminator = Discriminator()
-        _ = discriminator(test_images, tf.ones((1, 8, 96), dtype=tf.float32))
+        _ = discriminator(
+            test_images,
+            tf.ones((1, 8, 96), dtype=tf.float32),
+            tf.ones((1, 8), dtype=tf.float32),
+        )
 
         return discriminator
 
