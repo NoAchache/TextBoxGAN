@@ -53,7 +53,7 @@ class ModelLoader:
         _ = discriminator(
             test_images,
             tf.ones((1, 8, 96), dtype=tf.float32),
-            tf.ones((1, 8), dtype=tf.float32),
+            tf.ones((1, 1), dtype=tf.float32),
         )
 
         return discriminator
