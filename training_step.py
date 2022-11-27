@@ -265,7 +265,7 @@ class TrainingStep:
         real_logits, mask, num_chars = self.aster_ocr(ocr_images)
         real_logits = real_logits * mask * disc_logits_weight
         if do_r1_reg:
-            real_scores, r1_penalty = self._r1_reg(real_images, real_logits)
+            real_scores, r1_penalty = self._r1_reg(real_images, real_logits, num_chars)
         else:
 
             real_scores = self.discriminator(real_images, real_logits, num_chars)
@@ -363,7 +363,7 @@ class TrainingStep:
         return tf.reduce_sum(pl_penalty) / self.batch_size  # scales penalty
 
     def _r1_reg(
-        self, real_images: tf.float32, logits
+        self, real_images: tf.float32, logits, num_chars
     ) -> Tuple["tf.float32", "tf.float32"]:
         """
         Infer the discriminator and computes the R1 regression.
@@ -380,7 +380,7 @@ class TrainingStep:
         """
         with tf.GradientTape() as r1_tape:
             r1_tape.watch(real_images)
-            real_scores = self.discriminator(real_images, logits)
+            real_scores = self.discriminator(real_images, logits, num_chars)
             real_loss = tf.reduce_sum(real_scores)
 
         real_grads = r1_tape.gradient(real_loss, real_images)
