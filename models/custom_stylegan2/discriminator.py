@@ -215,7 +215,8 @@ class Discriminator(tf.keras.Model):
         logits = tf.reshape(logits, shape=[-1, 96])
         logits = self.dense_1(logits)
         logits = tf.reshape(logits, shape=[-1, 8, 64])
-        logits = tf.reduce_sum(logits, axis=1) / num_chars
+        logits = tf.reduce_sum(logits, axis=1)
+        logits = logits / num_chars
         logits = self.dense_2(logits)
 
         x = x + logits
