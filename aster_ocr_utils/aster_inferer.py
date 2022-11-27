@@ -166,7 +166,13 @@ class AsterInferer(tf.keras.Model):
             ],
             axis=0,
         )
-        return logits, mask, cfg.max_char_number - padding_len
+        return (
+            logits,
+            mask,
+            cfg.max_char_number - padding_len
+            if padding_len != cfg.max_char_number
+            else 1,
+        )
 
     @staticmethod
     def convert_inputs(
