@@ -40,11 +40,12 @@ class AsterInferer(tf.keras.Model):
                 logits.append(l)
                 masks.append(mask)
                 num_chars.append(float(num_char))
+        print(num_chars)
 
         return (
             tf.concat(logits, axis=0),
             tf.stack(masks)[:, :, tf.newaxis],
-            tf.constant(num_chars, dtype=tf.float32)[:, tf.newaxis],
+            tf.convert_to_tensor(num_chars, dtype=tf.float32)[:, tf.newaxis],
         )
 
     def _postprocess_combine(self, logits: tf.float32) -> tf.float32:
