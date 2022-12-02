@@ -175,7 +175,7 @@ class Trainer(object):
             step=self.g_optimizer.iterations.numpy()
         )
         # start training
-        for real_images, ocr_image, input_words, ocr_labels in train_dataset:
+        for real_images, input_words, ocr_labels, real_ocr_labels in train_dataset:
             step = self.g_optimizer.iterations.numpy()
 
             # g train step
@@ -195,13 +195,13 @@ class Trainer(object):
 
             (gen_losses, disc_losses, ocr_loss,) = self.training_step.dist_train_step(
                 real_images,
-                ocr_image,
                 input_words,
                 ocr_labels,
                 do_r1_reg,
                 do_pl_reg,
                 ocr_loss_weight,
                 disc_logits_weight,
+                real_ocr_labels,
             )
 
             reg_g_loss, g_loss, pl_penalty = gen_losses

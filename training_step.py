@@ -58,13 +58,13 @@ class TrainingStep:
     def dist_train_step(
         self,
         real_images: tf.float32,
-        ocr_images: tf.float32,
         input_words: tf.int32,
         ocr_labels: tf.int32,
         do_r1_reg: bool,
         do_pl_reg: bool,
         ocr_loss_weight: float,
         disc_logits_weight,
+        real_ocr_labels,
     ) -> Tuple[
         Tuple["tf.float32", "tf.float32", "tf.float32"],
         Tuple["tf.float32", "tf.float32", "tf.float32"],
@@ -76,7 +76,6 @@ class TrainingStep:
         Parameters
         ----------
         real_images: Real text boxes (i.e. from the dataset) preprocessed for our model.
-        ocr_images: Real text boxes (i.e. from the dataset) preprocessed for the OCR model.
         input_words: Integer sequences obtained from the input words (initially strings) using the MAIN_CHAR_VECTOR.
         ocr_labels: Integer sequences obtained from the input words (initially strings) using the ASTER_CHAR_VECTOR.
         do_r1_reg: Whether to compute the R1 regression.
@@ -93,13 +92,13 @@ class TrainingStep:
             fn=self._train_step,
             args=(
                 real_images,
-                ocr_images,
                 input_words,
                 ocr_labels,
                 do_r1_reg,
                 do_pl_reg,
                 ocr_loss_weight,
                 disc_logits_weight,
+                real_ocr_labels,
             ),
         )
 
@@ -140,13 +139,13 @@ class TrainingStep:
     def _train_step(
         self,
         real_images: tf.float32,
-        ocr_images: tf.float32,
         input_words: tf.int32,
         ocr_labels: tf.int32,
         do_r1_reg: bool,
         do_pl_reg: bool,
         ocr_loss_weight: float,
         disc_logits_weight,
+        real_ocr_labels,
     ) -> Tuple[
         Tuple["tf.float32", "tf.float32", "tf.float32"],
         Tuple["tf.float32", "tf.float32", "tf.float32"],
@@ -158,7 +157,6 @@ class TrainingStep:
         Parameters
         ----------
         real_images: Real text boxes (i.e. from the dataset) preprocessed for our model.
-        ocr_images: Real text boxes (i.e. from the dataset) preprocessed for the OCR model.
         input_words: Integer sequences obtained from the input words (initially strings) using the MAIN_CHAR_VECTOR.
         ocr_labels: Integer sequences obtained from the input words (initially strings) using the ASTER_CHAR_VECTOR.
         do_r1_reg: Whether to compute the R1 regression.
@@ -183,7 +181,7 @@ class TrainingStep:
             fake_images = mask_text_box(fake_images, input_words, self.char_width)
 
             ocr_loss, logits, num_chars = self._get_ocr_loss(
-                fake_images, ocr_labels, ocr_images
+                fake_images, ocr_labels, real_ocr_labels, real_images
             )
             logits = logits * disc_logits_weight
             weighted_ocr_loss = ocr_loss_weight * ocr_loss
@@ -192,7 +190,7 @@ class TrainingStep:
                 fake_images, do_pl_reg, input_words, logits, num_chars
             )
             reg_d_loss, d_loss, r1_penalty = self._get_discriminator_losses(
-                fake_scores, real_images, do_r1_reg, ocr_images, disc_logits_weight
+                fake_scores, real_images, do_r1_reg, real_ocr_labels, disc_logits_weight
             )
 
         self._backpropagates_gradient(
@@ -243,7 +241,7 @@ class TrainingStep:
         fake_scores: tf.float32,
         real_images: tf.float32,
         do_r1_reg: bool,
-        ocr_images,
+        real_ocr_labels,
         disc_logits_weight,
     ) -> Tuple["tf.float32", "tf.float32", "tf.float32"]:
         """
@@ -262,7 +260,10 @@ class TrainingStep:
         r1_penalty: Penalty of the Path Length regression.
 
         """
-        real_logits, mask, num_chars = self.aster_ocr(ocr_images)
+        real_images_ocr_format = self.aster_ocr.convert_inputs(
+            real_images, real_ocr_labels, blank_label=1
+        )
+        real_logits, mask, num_chars = self.aster_ocr(real_images_ocr_format)
         real_logits = real_logits * mask * disc_logits_weight
         if do_r1_reg:
             real_scores, r1_penalty = self._r1_reg(real_images, real_logits, num_chars)
@@ -391,7 +392,11 @@ class TrainingStep:
         return real_scores, r1_penalty
 
     def _get_ocr_loss(
-        self, fake_images: tf.float32, ocr_labels: tf.int32, ocr_images: tf.float32
+        self,
+        fake_images: tf.float32,
+        ocr_labels: tf.int32,
+        real_ocr_labels,
+        real_images,
     ) -> tf.float32:
         """
         Computes the OCR loss.
@@ -400,7 +405,6 @@ class TrainingStep:
         ----------
         fake_images: Text boxes generated with our model.
         ocr_labels: Integer sequences obtained from the input words (initially strings) using the ASTER_CHAR_VECTOR.
-        ocr_images: Real text boxes (i.e. from the dataset) preprocessed for the OCR model.
 
         Returns
         -------
@@ -414,7 +418,10 @@ class TrainingStep:
         logits, mask, num_chars = self.aster_ocr(fake_images_ocr_format)
 
         if self.ocr_loss_type == "mse":
-            real_logits, mask, num_chars = self.aster_ocr(ocr_images)
+            real_images_ocr_format = self.aster_ocr.convert_inputs(
+                real_images, real_ocr_labels, blank_label=1
+            )
+            real_logits, mask, num_chars = self.aster_ocr(real_images_ocr_format)
             return mean_squared_loss(real_logits, logits)
         elif self.ocr_loss_type == "softmax_crossentropy":
             loss = softmax_cross_entropy_loss(logits, ocr_labels)
