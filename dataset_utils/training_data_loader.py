@@ -36,7 +36,7 @@ class TrainingDataLoader:
                 lambda data: tf.py_function(
                     func=self._data_getter,
                     inp=[data],
-                    Tout=(tf.float32, tf.float32, tf.int32, tf.int32),
+                    Tout=(tf.float32, tf.int32, tf.int32, tf.int32),
                 ),
                 num_parallel_calls=cfg.num_workers,
             )
